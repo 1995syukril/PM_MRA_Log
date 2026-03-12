@@ -423,6 +423,11 @@ textarea{resize:vertical;min-height:65px}
 <!-- ===== FORM VENDOR ===== -->
 <section class="section" id="tab-form-vendor">
   <div class="vendor-banner">🏢 INPUT SERVIS VENDOR — MENTENG REGENCY</div>
+  <div id="v-edit-banner" style="display:none;background:#b5860d;color:#fff;padding:8px 14px;margin-bottom:10px;font-family:var(--mono);font-size:11px;font-weight:600;display:none;justify-content:space-between;align-items:center">
+    <span>✏️ MODE EDIT — Ubah data lalu klik Simpan</span>
+    <button onclick="batalEditVendor()" style="background:none;border:1px solid #fff;color:#fff;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer">✕ BATAL EDIT</button>
+  </div>
+  <input type="hidden" id="v-edit-idx" value="">
   <div class="fcard vendor-card">
     <div class="fgrid">
       <div class="fg"><label>Tanggal Kunjungan *</label><input type="date" id="v-tgl"></div>
@@ -1182,6 +1187,8 @@ function checkAllV(){
   cks.forEach(c=>c.checked=!all);
 }
 function simpanVendor(){
+  const editIdx = document.getElementById('v-edit-idx').value;
+  const isEdit = editIdx !== '';
   const tgl=document.getElementById('v-tgl').value;
   const kat=document.getElementById('v-kat').value;
   const tek=document.getElementById('v-teknisi').value.trim();
@@ -1195,7 +1202,13 @@ function simpanVendor(){
   if(!checks.length&&!confirm('Tidak ada checklist yang dicentang. Lanjutkan?'))return;
   const record = {ts:new Date().toISOString(),jenis:'vendor',tgl,jam,kat,
     perusahaan:perusahaan||'(Belum diisi)',teknisiVendor:tek,verifikasi:verif,checks,kondisi,catatan:cat};
-  LOG_V.unshift(record);
+  if(isEdit){
+    LOG_V[parseInt(editIdx)] = record;
+    document.getElementById('v-edit-idx').value='';
+    document.getElementById('v-edit-banner').style.display='none';
+  } else {
+    LOG_V.unshift(record);
+  }
   localStorage.setItem('pm_vendor_v1',JSON.stringify(LOG_V));
   // Kirim ke Google Sheets
   sendToSheets({...record, type:'vendor'}).then(result => {
@@ -1228,7 +1241,7 @@ function renderRiwayat(){
   const fT=document.getElementById('rv-tek').value;
   const fKond=document.getElementById('rv-kondisi').value;
 
-  let all=[...LOG_I.map(d=>({...d,_type:'internal'})),...LOG_V.map(d=>({...d,_type:'vendor'}))];
+  let all=[...LOG_I.map(d=>({...d,_type:'internal'})),...LOG_V.map((d,i)=>({...d,_type:'vendor',_origIdx:i}))];
   all.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
 
   if(fJ)all=all.filter(d=>d._type===fJ);
@@ -1245,14 +1258,21 @@ function renderRiwayat(){
     const bc=kond==='Normal'?'bok':kond==='Ada Temuan'||kond==='Perlu Perhatian'?'bwarn':'bdanger';
     if(isV){
       const katIcon={'AC':'🌡️','Lift':'🛗','STP':'♻️'}[d.kat]||'🏢';
-      return `<div class="hi vendor-hi">
+      const vi = all.indexOf(d);
+      return `<div class="hi vendor-hi" id="vhi-${vi}">
         <div class="hih">
           <div>
             <div class="hieq">${katIcon} Vendor ${d.kat} <span class="badge bvendor" style="font-size:9px">VENDOR</span></div>
             <div class="himeta">📅 ${fmt(d.tgl)} ${d.jam?'· ⏰ '+d.jam:''} · 🏢 ${d.perusahaan}</div>
             <div class="himeta">👷 Teknisi: ${d.teknisiVendor} · ✅ Verifikasi: ${d.verifikasi}</div>
           </div>
-          <span class="badge ${bc}">${kond}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <span class="badge ${bc}">${kond}</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn bout bsm" onclick="editVendorLog(${d._origIdx})" style="font-size:9px">✏️ Edit</button>
+              <button class="btn bout bsm" onclick="hapusVendorLog(${d._origIdx})" style="font-size:9px;color:var(--danger)">🗑️</button>
+            </div>
+          </div>
         </div>
         ${d.checks?.length?`<div class="hicl">${d.checks.map(c=>`<span class="cchip vchip">✓ ${c}</span>`).join('')}</div>`:''}
         ${d.catatan?`<div style="margin-top:6px;font-size:12px;color:var(--text2);padding:7px;background:#eef3f9">📌 ${d.catatan}</div>`:''}
@@ -1858,6 +1878,55 @@ function cetakPengajuan(){
   w.document.write(printContent);
   w.document.close();
   closeModal('modal-pengajuan');
+}
+
+
+// ===================== EDIT / HAPUS VENDOR LOG =====================
+function hapusVendorLog(idx){
+  if(!confirm('Hapus data vendor ini? Tidak bisa dibatalkan.')) return;
+  LOG_V.splice(idx, 1);
+  localStorage.setItem('pm_vendor_v1', JSON.stringify(LOG_V));
+  showToast('🗑️ Data vendor dihapus','internal');
+  renderRiwayat();
+}
+
+function editVendorLog(idx){
+  const d = LOG_V[idx];
+  if(!d) return;
+  // Pre-fill form vendor
+  document.getElementById('v-tgl').value = d.tgl||'';
+  document.getElementById('v-jam').value = d.jam||'';
+  document.getElementById('v-kat').value = d.kat||'';
+  document.getElementById('v-perusahaan').value = d.perusahaan||'';
+  document.getElementById('v-teknisi').value = d.teknisiVendor||'';
+  document.getElementById('v-verif').value = d.verifikasi||'';
+  document.getElementById('v-cat').value = d.catatan||'';
+  // Set kondisi radio
+  document.querySelectorAll('input[name="vkondisi"]').forEach(r => {
+    r.checked = r.value === d.kondisi;
+  });
+  // Load checklist
+  onVendorKatChange();
+  setTimeout(()=>{
+    const cks = document.querySelectorAll('#v-cl input[type=checkbox]');
+    cks.forEach(c => { c.checked = d.checks && d.checks.includes(c.value); });
+  }, 100);
+  // Mark as editing
+  document.getElementById('v-edit-idx').value = idx;
+  document.getElementById('v-edit-banner').style.display = 'block';
+  // Switch to vendor tab
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>{b.classList.remove('active');b.classList.remove('vactive');});
+  document.getElementById('tab-form-vendor').classList.add('active');
+  document.querySelectorAll('nav button')[2].classList.add('vactive');
+  window.scrollTo(0,0);
+  showToast('✏️ Mode edit — ubah data lalu klik Simpan','vendor');
+}
+
+function batalEditVendor(){
+  document.getElementById('v-edit-idx').value = '';
+  document.getElementById('v-edit-banner').style.display = 'none';
+  resetV();
 }
 
 // ===================== BOOT =====================
