@@ -1193,10 +1193,21 @@ function simpanVendor(){
   if(!tgl||!kat||!tek||!verif||!kondisi){alert('⚠️ Lengkapi semua field wajib (*)');return;}
   const checks=[...document.querySelectorAll('#v-cl input:checked')].map(c=>c.value);
   if(!checks.length&&!confirm('Tidak ada checklist yang dicentang. Lanjutkan?'))return;
-  LOG_V.unshift({ts:new Date().toISOString(),jenis:'vendor',tgl,jam,kat,
-    perusahaan:perusahaan||'(Belum diisi)',teknisiVendor:tek,verifikasi:verif,checks,kondisi,catatan:cat});
+  const record = {ts:new Date().toISOString(),jenis:'vendor',tgl,jam,kat,
+    perusahaan:perusahaan||'(Belum diisi)',teknisiVendor:tek,verifikasi:verif,checks,kondisi,catatan:cat};
+  LOG_V.unshift(record);
   localStorage.setItem('pm_vendor_v1',JSON.stringify(LOG_V));
-  showToast('🏢 Data vendor berhasil disimpan!','vendor');
+  // Kirim ke Google Sheets
+  sendToSheets({...record, type:'vendor'}).then(result => {
+    if(result.status === 'success') {
+      showToast('🏢 Vendor tersimpan + dikirim ke Sheets!','vendor');
+      updateSheetsStatus(true);
+    } else if(result.status === 'local_only') {
+      showToast('🏢 Tersimpan lokal (Sheets belum terhubung)','vendor');
+    } else {
+      showToast('🏢 Tersimpan lokal — cek koneksi Sheets','vendor');
+    }
+  });
   resetV();
 }
 function resetV(){
