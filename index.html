@@ -1149,24 +1149,7 @@ function checkAllI(){
   const all=[...cks].every(c=>c.checked);
   cks.forEach(c=>c.checked=!all);
 }
-function simpanInternal(){
-  const tgl=document.getElementById('i-tgl').value;
-  const tek=document.getElementById('i-tek').value;
-  const eqId=document.getElementById('i-eq').value;
-  const jam=document.getElementById('i-jam').value;
-  const kondisi=document.querySelector('input[name="ikondisi"]:checked')?.value;
-  const cat=document.getElementById('i-cat').value;
-  if(!tgl||!tek||!eqId||!kondisi){alert('⚠️ Lengkapi semua field wajib (*)');return;}
-  const eq=EQUIPMENT_DATA.find(e=>e.id===eqId);
-  const checks=[...document.querySelectorAll('#i-cl input:checked')].map(c=>c.value);
-  if(!checks.length&&!confirm('Tidak ada checklist yang dicentang. Lanjutkan?'))return;
-  LOG_I.unshift({ts:new Date().toISOString(),jenis:'internal',tgl,jam,id:eqId,
-    nama:eq.nama,lokasi:eq.lokasi,kategori:eq.kategori,teknisi:tek,checks,kondisi,catatan:cat});
-  localStorage.setItem('pm_internal_v1',JSON.stringify(LOG_I));
-  eq.terakhir=tgl;
-  showToast('✅ Data servis tim internal disimpan!','internal');
-  resetI();
-}
+
 function resetI(){
   document.getElementById('i-cat').value='';
   document.getElementById('i-eq').value='';
