@@ -1621,8 +1621,15 @@ function simpanItemBaru(){
   const min = parseInt(document.getElementById('mt-min').value)||3;
   const lokasi = document.getElementById('mt-lokasi').value.trim();
   if(!nama||!kat){alert('⚠️ Nama item dan kategori wajib diisi');return;}
-  SP_ITEMS.push({id:'SP'+Date.now(), nama, kategori:kat, stok, satuan, min, lokasi});
+  const newItem = {id:'SP'+Date.now(), nama, kategori:kat, stok, satuan, min, lokasi};
+  SP_ITEMS.push(newItem);
   localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+  // Kirim ke Sheets - stok awal dicatat sebagai restock pertama
+  if(stok > 0){
+    sendToSheets({type:'sp_restock', tgl:new Date().toISOString().split('T')[0],
+      itemId:newItem.id, nama, kategori:kat, jumlah:stok, satuan, keterangan:'Stok awal'});
+  }
+  sendToSheets({type:'sp_master', action:'add', ...newItem});
   closeModal('modal-tambah');
   showToast('✅ Item '+nama+' berhasil ditambahkan!','internal');
   renderSpStok();
@@ -1640,10 +1647,15 @@ function simpanPemakaian(){
     if(!confirm(`Stok ${item.nama} hanya ${item.stok} ${item.satuan}, tapi pakai ${jml}. Lanjutkan?`)) return;
   }
   item.stok = Math.max(0, item.stok - jml);
-  SP_LOG.unshift({ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
-    jumlah:jml, satuan:item.satuan, teknisi:tek, untuk});
+  const logPakai = {ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
+    jumlah:jml, satuan:item.satuan, teknisi:tek, untuk, stokSisa:item.stok};
+  SP_LOG.unshift(logPakai);
   localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
   localStorage.setItem('sp_log_v1', JSON.stringify(SP_LOG));
+  // Kirim ke Sheets
+  sendToSheets({type:'sp_pakai', ...logPakai});
+  sendToSheets({type:'sp_master', action:'update', id:item.id, nama:item.nama, kategori:item.kategori,
+    stok:item.stok, satuan:item.satuan, min:item.min||3, lokasi:item.lokasi||''});
   closeModal('modal-pakai');
   showToast('📤 Pemakaian '+jml+' '+item.satuan+' '+item.nama+' dicatat!','internal');
   renderSpStok();
@@ -1657,10 +1669,15 @@ function simpanRestock(){
   if(!tgl||idx===''||!jml){alert('⚠️ Lengkapi tanggal, item, dan jumlah');return;}
   const item = SP_ITEMS[parseInt(idx)];
   item.stok += jml;
-  SP_RESTOCK.unshift({ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
-    jumlah:jml, satuan:item.satuan, keterangan:ket});
+  const logRestock = {ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
+    jumlah:jml, satuan:item.satuan, keterangan:ket, stokSisa:item.stok};
+  SP_RESTOCK.unshift(logRestock);
   localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
   localStorage.setItem('sp_restock_v1', JSON.stringify(SP_RESTOCK));
+  // Kirim ke Sheets
+  sendToSheets({type:'sp_restock', ...logRestock});
+  sendToSheets({type:'sp_master', action:'update', id:item.id, nama:item.nama, kategori:item.kategori,
+    stok:item.stok, satuan:item.satuan, min:item.min||3, lokasi:item.lokasi||''});
   closeModal('modal-restock');
   showToast('📥 Restock +'+jml+' '+item.satuan+' '+item.nama+' dicatat!','internal');
   renderSpStok();
