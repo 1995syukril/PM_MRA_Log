@@ -144,6 +144,29 @@ textarea{resize:vertical;min-height:65px}
 
   .hi.complaint-hi{border-left:3px solid #c8520a;background:#fff8f4}
   .hi.renovasi-hi{border-left:3px solid var(--vendor);background:#f8fafd}
+
+  /* SPARE PART */
+  .sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+  .sp-card{background:var(--card);border:1px solid var(--border);padding:11px 13px;position:relative;overflow:hidden}
+  .sp-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+  .sp-card.ok::before{background:var(--ok)}.sp-card.warn::before{background:var(--warn)}.sp-card.danger::before{background:var(--danger)}
+  .sp-name{font-weight:600;font-size:13px;margin-bottom:2px}
+  .sp-kat{font-family:var(--mono);font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+  .sp-stok{font-family:var(--mono);font-size:22px;font-weight:600;margin:4px 0 2px}
+  .sp-card.ok .sp-stok{color:var(--ok)}.sp-card.warn .sp-stok{color:var(--warn)}.sp-card.danger .sp-stok{color:var(--danger)}
+  .sp-bar{height:5px;background:var(--border);margin-top:5px;width:100%}
+  .sp-barfill{height:100%;transition:width .5s}
+  .sp-actions{display:flex;gap:5px;margin-top:7px}
+  .sp-tabs{display:flex;gap:0;border:1px solid var(--border);margin-bottom:14px;overflow:hidden}
+  .sp-tab{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:9px 14px;border:none;background:none;cursor:pointer;color:var(--text2);border-right:1px solid var(--border);flex:1;transition:all .2s}
+  .sp-tab:last-child{border-right:none}
+  .sp-tab.active{background:var(--text);color:var(--bg)}
+  .sp-section{display:none}.sp-section.active{display:block}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--card);padding:20px;width:90%;max-width:420px;max-height:90vh;overflow-y:auto}
+  .modal-title{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  @media(max-width:500px){.sp-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -171,6 +194,8 @@ textarea{resize:vertical;min-height:65px}
   <div class="nav-sep"></div>
   <button onclick="showTab('lap-internal',this,false)">📄 Laporan Tim</button>
   <button onclick="showTab('lap-vendor',this,true)">📄 Laporan Vendor</button>
+  <div class="nav-sep"></div>
+  <button onclick="showTab('sparepart',this,false)">📦 Spare Part</button>
 </nav>
 
 <main>
@@ -536,6 +561,165 @@ textarea{resize:vertical;min-height:65px}
   <div class="stitle">DETAIL KUNJUNGAN VENDOR</div>
   <div id="lv-det"></div>
 </section>
+
+
+<!-- ===== SPARE PART ===== -->
+<section class="section" id="tab-sparepart">
+  <div class="stitle">📦 MANAJEMEN SPARE PART & MATERIAL</div>
+
+  <!-- Summary cards -->
+  <div class="sgrid4" id="sp-summary"></div>
+
+  <!-- Sub tabs -->
+  <div class="sp-tabs">
+    <button class="sp-tab active" id="sptab-stok" onclick="showSpTab('stok',this)">📋 Stok Master</button>
+    <button class="sp-tab" id="sptab-log" onclick="showSpTab('log',this)">📤 Log Pemakaian</button>
+    <button class="sp-tab" id="sptab-restock" onclick="showSpTab('restock',this)">📥 Restock / Tambah</button>
+  </div>
+
+  <!-- STOK MASTER -->
+  <div class="sp-section active" id="sp-stok">
+    <div class="fbar">
+      <select id="sp-f-kat" onchange="renderSpStok()">
+        <option value="">Semua Kategori</option>
+        <option>Lampu</option><option>Oli & Pelumas</option><option>Spare Part Pompa</option>
+        <option>MCB & Komponen Panel</option><option>Pipa & Fitting</option>
+        <option>Cat & Material Sipil</option><option>Filter AC</option>
+        <option>Bahan Kimia</option><option>Lain-lain</option>
+      </select>
+      <select id="sp-f-status" onchange="renderSpStok()">
+        <option value="">Semua Status</option>
+        <option value="ok">Aman</option><option value="warn">Menipis</option><option value="danger">Habis</option>
+      </select>
+      <button class="btn bprimary bsm" onclick="openModalTambahItem()">+ TAMBAH ITEM BARU</button>
+    </div>
+    <div class="sp-grid" id="sp-grid-stok"></div>
+  </div>
+
+  <!-- LOG PEMAKAIAN -->
+  <div class="sp-section" id="sp-log">
+    <div class="fbar">
+      <select id="sp-f-log-kat" onchange="renderSpLog()"><option value="">Semua Kategori</option>
+        <option>Lampu</option><option>Oli & Pelumas</option><option>Spare Part Pompa</option>
+        <option>MCB & Komponen Panel</option><option>Pipa & Fitting</option>
+        <option>Cat & Material Sipil</option><option>Filter AC</option>
+        <option>Bahan Kimia</option><option>Lain-lain</option>
+      </select>
+      <input type="month" id="sp-f-log-bln" onchange="renderSpLog()" style="width:auto;font-size:12px;padding:5px 8px">
+      <button class="btn bprimary bsm" onclick="openModalPakai()">📤 CATAT PEMAKAIAN</button>
+    </div>
+    <div class="twrap"><table>
+      <thead><tr><th>Tanggal</th><th>Item</th><th>Kategori</th><th>Jumlah</th><th>Satuan</th><th>Dipakai Untuk</th><th>Personil</th></tr></thead>
+      <tbody id="sp-log-tbody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- RESTOCK -->
+  <div class="sp-section" id="sp-restock">
+    <div style="margin-bottom:10px">
+      <button class="btn bprimary bsm" onclick="openModalRestock()">📥 CATAT RESTOCK</button>
+    </div>
+    <div class="twrap"><table>
+      <thead><tr><th>Tanggal</th><th>Item</th><th>Kategori</th><th>Jumlah Masuk</th><th>Satuan</th><th>Keterangan</th></tr></thead>
+      <tbody id="sp-restock-tbody"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- MODAL: Tambah Item Baru -->
+<div class="modal-overlay" id="modal-tambah">
+  <div class="modal">
+    <div class="modal-title">+ TAMBAH ITEM SPARE PART BARU</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="fg"><label>Nama Item *</label><input type="text" id="mt-nama" placeholder="misal: Lampu LED 18W, Oli Mesin 20W50"></div>
+      <div class="fg"><label>Kategori *</label>
+        <select id="mt-kat">
+          <option value="">— Pilih —</option>
+          <option>Lampu</option><option>Oli & Pelumas</option><option>Spare Part Pompa</option>
+          <option>MCB & Komponen Panel</option><option>Pipa & Fitting</option>
+          <option>Cat & Material Sipil</option><option>Filter AC</option>
+          <option>Bahan Kimia</option><option>Lain-lain</option>
+        </select>
+      </div>
+      <div class="fg"><label>Kategori Baru (kalau tidak ada di atas)</label><input type="text" id="mt-kat-baru" placeholder="Tulis kategori baru..."></div>
+      <div class="fgrid">
+        <div class="fg"><label>Stok Awal *</label><input type="number" id="mt-stok" min="0" placeholder="0"></div>
+        <div class="fg"><label>Satuan *</label>
+          <select id="mt-satuan">
+            <option>pcs</option><option>liter</option><option>meter</option><option>roll</option>
+            <option>kg</option><option>kaleng</option><option>set</option><option>unit</option><option>botol</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Stok Minimum (batas menipis)</label><input type="number" id="mt-min" min="0" placeholder="misal: 5"></div>
+      <div class="fg"><label>Lokasi Penyimpanan</label><input type="text" id="mt-lokasi" placeholder="misal: Gudang Basement, Ruang Teknisi"></div>
+    </div>
+    <div class="brow">
+      <button class="btn bprimary" onclick="simpanItemBaru()">💾 SIMPAN</button>
+      <button class="btn bout" onclick="closeModal('modal-tambah')">✕ BATAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Catat Pemakaian -->
+<div class="modal-overlay" id="modal-pakai">
+  <div class="modal">
+    <div class="modal-title">📤 CATAT PEMAKAIAN SPARE PART</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="fg"><label>Tanggal *</label><input type="date" id="mp-tgl"></div>
+      <div class="fg"><label>Item *</label>
+        <select id="mp-item" onchange="onMpItemChange()"><option value="">— Pilih Item —</option></select>
+      </div>
+      <div class="fg" id="mp-info" style="display:none">
+        <div class="eq-infobox" id="mp-info-box"></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Jumlah Dipakai *</label><input type="number" id="mp-jml" min="1" placeholder="0"></div>
+        <div class="fg"><label>Satuan</label><input type="text" id="mp-sat" readonly style="background:var(--bg2)"></div>
+      </div>
+      <div class="fg"><label>Personil *</label>
+        <select id="mp-tek">
+          <option value="">— Pilih —</option>
+          <option>Syukril (Supervisor)</option><option>Solaeman (Foreman)</option>
+          <option>Sumartono</option><option>Joko Susanto</option><option>Dasrul</option>
+          <option>Ridwan Naufal</option><option>Ilham Kristyanto</option>
+          <option>Sakim</option><option>Aris Munandar</option><option>Nanang Bimasuka</option>
+        </select>
+      </div>
+      <div class="fg"><label>Dipakai Untuk *</label>
+        <input type="text" id="mp-untuk" placeholder="misal: Ganti lampu koridor Lt 3, Servis pompa, Complaint unit 502">
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn bprimary" onclick="simpanPemakaian()">💾 SIMPAN</button>
+      <button class="btn bout" onclick="closeModal('modal-pakai')">✕ BATAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Restock -->
+<div class="modal-overlay" id="modal-restock">
+  <div class="modal">
+    <div class="modal-title">📥 CATAT RESTOCK / TAMBAH STOK</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="fg"><label>Tanggal *</label><input type="date" id="mr-tgl"></div>
+      <div class="fg"><label>Item *</label>
+        <select id="mr-item" onchange="onMrItemChange()"><option value="">— Pilih Item —</option></select>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Jumlah Masuk *</label><input type="number" id="mr-jml" min="1" placeholder="0"></div>
+        <div class="fg"><label>Satuan</label><input type="text" id="mr-sat" readonly style="background:var(--bg2)"></div>
+      </div>
+      <div class="fg"><label>Keterangan</label>
+        <input type="text" id="mr-ket" placeholder="misal: Beli dari toko X, sisa proyek...">
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn bprimary" onclick="simpanRestock()">💾 SIMPAN</button>
+      <button class="btn bout" onclick="closeModal('modal-restock')">✕ BATAL</button>
+    </div>
+  </div>
+</div>
 
 </main>
 <div id="toast"></div>
@@ -1203,13 +1387,263 @@ async function testSheetsConnection() {
 // Test koneksi saat halaman dibuka
 setTimeout(testSheetsConnection, 1500);
 
+
+// ===================== SPARE PART =====================
+let SP_ITEMS  = JSON.parse(localStorage.getItem('sp_items_v1') || '[]');
+let SP_LOG    = JSON.parse(localStorage.getItem('sp_log_v1')   || '[]');
+let SP_RESTOCK= JSON.parse(localStorage.getItem('sp_restock_v1')|| '[]');
+
+function getSpStatus(item){
+  if(item.stok <= 0) return 'danger';
+  if(item.stok <= (item.min || 3)) return 'warn';
+  return 'ok';
+}
+
+function showSpTab(id, btn){
+  document.querySelectorAll('.sp-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sp-section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sp-'+id).classList.add('active');
+  if(id==='stok') renderSpStok();
+  if(id==='log') renderSpLog();
+  if(id==='restock') renderSpRestock();
+}
+
+function renderSpSummary(){
+  const total = SP_ITEMS.length;
+  const aman  = SP_ITEMS.filter(i=>getSpStatus(i)==='ok').length;
+  const menipis = SP_ITEMS.filter(i=>getSpStatus(i)==='warn').length;
+  const habis = SP_ITEMS.filter(i=>getSpStatus(i)==='danger').length;
+  document.getElementById('sp-summary').innerHTML = `
+    <div class="scard nt"><div class="slabel">Total Item</div><div class="sval">${total}</div><div class="ssub">Spare part terdaftar</div></div>
+    <div class="scard ok"><div class="slabel">✅ Stok Aman</div><div class="sval">${aman}</div><div class="ssub">Item</div></div>
+    <div class="scard warn"><div class="slabel">⚠️ Menipis</div><div class="sval">${menipis}</div><div class="ssub">Perlu restock</div></div>
+    <div class="scard danger"><div class="slabel">🔴 Habis</div><div class="sval">${habis}</div><div class="ssub">Stok 0</div></div>`;
+}
+
+function renderSpStok(){
+  renderSpSummary();
+  const fK = document.getElementById('sp-f-kat').value;
+  const fS = document.getElementById('sp-f-status').value;
+  let items = [...SP_ITEMS];
+  if(fK) items = items.filter(i=>i.kategori===fK);
+  if(fS) items = items.filter(i=>getSpStatus(i)===fS);
+  const grid = document.getElementById('sp-grid-stok');
+  if(!items.length){
+    grid.innerHTML='<div class="empty" style="grid-column:1/-1">Belum ada item. Klik "+ TAMBAH ITEM BARU" untuk mulai.</div>';
+    return;
+  }
+  grid.innerHTML = items.map((item,idx)=>{
+    const st = getSpStatus(item);
+    const pct = item.min ? Math.min(Math.round((item.stok/((item.min||3)*3))*100),100) : 100;
+    const barColor = st==='ok'?'var(--ok)':st==='warn'?'var(--warn)':'var(--danger)';
+    const stLabel = st==='ok'?'bok':st==='warn'?'bwarn':'bdanger';
+    const stText = st==='ok'?'Aman':st==='warn'?'Menipis':'Habis';
+    const realIdx = SP_ITEMS.indexOf(item);
+    return `<div class="sp-card ${st}">
+      <div class="sp-kat">${item.kategori}</div>
+      <div class="sp-name">${item.nama}</div>
+      <div class="sp-stok">${item.stok} <span style="font-size:13px;font-weight:400;color:var(--text2)">${item.satuan}</span></div>
+      ${item.lokasi?`<div style="font-size:11px;color:var(--text2)">📍 ${item.lokasi}</div>`:''}
+      <div class="sp-bar"><div class="sp-barfill" style="width:${pct}%;background:${barColor}"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span class="badge ${stLabel}" style="font-size:9px">${stText}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text2)">Min: ${item.min||0} ${item.satuan}</span>
+      </div>
+      <div class="sp-actions">
+        <button class="btn bout bsm" style="flex:1" onclick="openModalPakaiItem(${realIdx})">📤 Pakai</button>
+        <button class="btn bout bsm" style="flex:1" onclick="openModalRestockItem(${realIdx})">📥 Restock</button>
+        <button class="btn bout bsm" onclick="hapusItem(${realIdx})" style="color:var(--danger)">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSpLog(){
+  const fK = document.getElementById('sp-f-log-kat').value;
+  const fB = document.getElementById('sp-f-log-bln').value;
+  let logs = [...SP_LOG].sort((a,b)=>new Date(b.tgl)-new Date(a.tgl));
+  if(fK) logs = logs.filter(l=>l.kategori===fK);
+  if(fB) logs = logs.filter(l=>l.tgl && l.tgl.startsWith(fB));
+  const tbody = document.getElementById('sp-log-tbody');
+  if(!logs.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text2);font-family:var(--mono);font-size:11px">Belum ada log pemakaian</td></tr>';return;}
+  tbody.innerHTML = logs.map(l=>`<tr>
+    <td style="font-size:11px">${fmt(l.tgl)}</td>
+    <td><strong style="font-size:12px">${l.nama}</strong></td>
+    <td><span class="badge bgray" style="font-size:8px">${l.kategori}</span></td>
+    <td style="font-family:var(--mono);font-weight:600;color:var(--danger)">-${l.jumlah}</td>
+    <td style="font-size:11px">${l.satuan}</td>
+    <td style="font-size:11px">${l.untuk||'—'}</td>
+    <td style="font-size:11px">${l.teknisi||'—'}</td>
+  </tr>`).join('');
+}
+
+function renderSpRestock(){
+  const logs = [...SP_RESTOCK].sort((a,b)=>new Date(b.tgl)-new Date(a.tgl));
+  const tbody = document.getElementById('sp-restock-tbody');
+  if(!logs.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2);font-family:var(--mono);font-size:11px">Belum ada log restock</td></tr>';return;}
+  tbody.innerHTML = logs.map(l=>`<tr>
+    <td style="font-size:11px">${fmt(l.tgl)}</td>
+    <td><strong style="font-size:12px">${l.nama}</strong></td>
+    <td><span class="badge bgray" style="font-size:8px">${l.kategori}</span></td>
+    <td style="font-family:var(--mono);font-weight:600;color:var(--ok)">+${l.jumlah}</td>
+    <td style="font-size:11px">${l.satuan}</td>
+    <td style="font-size:11px">${l.keterangan||'—'}</td>
+  </tr>`).join('');
+}
+
+// === MODAL HELPERS ===
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+
+function populateItemSelect(selId){
+  const sel = document.getElementById(selId);
+  sel.innerHTML = '<option value="">— Pilih Item —</option>';
+  SP_ITEMS.forEach((item,i)=>{
+    sel.innerHTML += `<option value="${i}">${item.nama} (${item.stok} ${item.satuan})</option>`;
+  });
+}
+
+function openModalTambahItem(){
+  document.getElementById('mt-nama').value='';
+  document.getElementById('mt-kat').value='';
+  document.getElementById('mt-kat-baru').value='';
+  document.getElementById('mt-stok').value='';
+  document.getElementById('mt-min').value='';
+  document.getElementById('mt-lokasi').value='';
+  openModal('modal-tambah');
+}
+
+function openModalPakai(){
+  const now = new Date();
+  document.getElementById('mp-tgl').value = now.toISOString().split('T')[0];
+  document.getElementById('mp-untuk').value='';
+  document.getElementById('mp-jml').value='';
+  document.getElementById('mp-tek').value='';
+  document.getElementById('mp-info').style.display='none';
+  populateItemSelect('mp-item');
+  openModal('modal-pakai');
+}
+
+function openModalPakaiItem(idx){
+  openModalPakai();
+  document.getElementById('mp-item').value=idx;
+  onMpItemChange();
+}
+
+function openModalRestock(){
+  const now = new Date();
+  document.getElementById('mr-tgl').value = now.toISOString().split('T')[0];
+  document.getElementById('mr-jml').value='';
+  document.getElementById('mr-ket').value='';
+  populateItemSelect('mr-item');
+  openModal('modal-restock');
+}
+
+function openModalRestockItem(idx){
+  openModalRestock();
+  document.getElementById('mr-item').value=idx;
+  onMrItemChange();
+}
+
+function onMpItemChange(){
+  const idx = document.getElementById('mp-item').value;
+  const info = document.getElementById('mp-info');
+  if(idx===''){info.style.display='none';document.getElementById('mp-sat').value='';return;}
+  const item = SP_ITEMS[parseInt(idx)];
+  document.getElementById('mp-sat').value = item.satuan;
+  document.getElementById('mp-info-box').innerHTML =
+    `<span class="badge bgray">${item.kategori}</span> &nbsp; Stok saat ini: <strong style="font-family:var(--mono)">${item.stok} ${item.satuan}</strong>${item.lokasi?' &nbsp; 📍 '+item.lokasi:''}`;
+  info.style.display='block';
+}
+
+function onMrItemChange(){
+  const idx = document.getElementById('mr-item').value;
+  if(idx===''){document.getElementById('mr-sat').value='';return;}
+  const item = SP_ITEMS[parseInt(idx)];
+  document.getElementById('mr-sat').value = item.satuan;
+}
+
+function simpanItemBaru(){
+  const nama = document.getElementById('mt-nama').value.trim();
+  const katDrop = document.getElementById('mt-kat').value;
+  const katBaru = document.getElementById('mt-kat-baru').value.trim();
+  const kat = katBaru || katDrop;
+  const stok = parseInt(document.getElementById('mt-stok').value)||0;
+  const satuan = document.getElementById('mt-satuan').value;
+  const min = parseInt(document.getElementById('mt-min').value)||3;
+  const lokasi = document.getElementById('mt-lokasi').value.trim();
+  if(!nama||!kat){alert('⚠️ Nama item dan kategori wajib diisi');return;}
+  SP_ITEMS.push({id:'SP'+Date.now(), nama, kategori:kat, stok, satuan, min, lokasi});
+  localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+  closeModal('modal-tambah');
+  showToast('✅ Item '+nama+' berhasil ditambahkan!','internal');
+  renderSpStok();
+}
+
+function simpanPemakaian(){
+  const tgl = document.getElementById('mp-tgl').value;
+  const idx = document.getElementById('mp-item').value;
+  const jml = parseInt(document.getElementById('mp-jml').value)||0;
+  const tek = document.getElementById('mp-tek').value;
+  const untuk = document.getElementById('mp-untuk').value.trim();
+  if(!tgl||idx===''||!jml||!tek||!untuk){alert('⚠️ Lengkapi semua field wajib');return;}
+  const item = SP_ITEMS[parseInt(idx)];
+  if(jml > item.stok){
+    if(!confirm(`Stok ${item.nama} hanya ${item.stok} ${item.satuan}, tapi pakai ${jml}. Lanjutkan?`)) return;
+  }
+  item.stok = Math.max(0, item.stok - jml);
+  SP_LOG.unshift({ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
+    jumlah:jml, satuan:item.satuan, teknisi:tek, untuk});
+  localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+  localStorage.setItem('sp_log_v1', JSON.stringify(SP_LOG));
+  closeModal('modal-pakai');
+  showToast('📤 Pemakaian '+jml+' '+item.satuan+' '+item.nama+' dicatat!','internal');
+  renderSpStok();
+}
+
+function simpanRestock(){
+  const tgl = document.getElementById('mr-tgl').value;
+  const idx = document.getElementById('mr-item').value;
+  const jml = parseInt(document.getElementById('mr-jml').value)||0;
+  const ket = document.getElementById('mr-ket').value.trim();
+  if(!tgl||idx===''||!jml){alert('⚠️ Lengkapi tanggal, item, dan jumlah');return;}
+  const item = SP_ITEMS[parseInt(idx)];
+  item.stok += jml;
+  SP_RESTOCK.unshift({ts:new Date().toISOString(), tgl, nama:item.nama, kategori:item.kategori,
+    jumlah:jml, satuan:item.satuan, keterangan:ket});
+  localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+  localStorage.setItem('sp_restock_v1', JSON.stringify(SP_RESTOCK));
+  closeModal('modal-restock');
+  showToast('📥 Restock +'+jml+' '+item.satuan+' '+item.nama+' dicatat!','internal');
+  renderSpStok();
+}
+
+function hapusItem(idx){
+  const item = SP_ITEMS[idx];
+  if(!confirm(`Hapus item "${item.nama}"? Data stok akan hilang.`)) return;
+  SP_ITEMS.splice(idx,1);
+  localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+  renderSpStok();
+  showToast('🗑️ Item dihapus','internal');
+}
+
+// Close modal on overlay click
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.remove('open');
+});
+
 // ===================== BOOT =====================
 initFilters();renderDash();
+renderSpSummary();
 initFormI();
 initFormV();
 renderRiwayat();
 initLapI();renderLapI();
 initLapV();renderLapV();
+// Init spare part month filter
+const spNow = new Date();
+document.getElementById('sp-f-log-bln').value = spNow.getFullYear()+'-'+String(spNow.getMonth()+1).padStart(2,'0');
 </script>
 </body>
 </html>
