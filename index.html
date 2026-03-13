@@ -206,6 +206,7 @@ textarea{resize:vertical;min-height:65px}
   <button onclick="showTab('lap-vendor',this,true)">📄 Laporan Vendor</button>
   <div class="nav-sep"></div>
   <button onclick="showTab('sparepart',this,false)">📦 Spare Part</button>
+  <button onclick="showTab('agenda',this,false)">📅 Agenda</button>
 </nav>
 
 <main>
@@ -773,6 +774,69 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
+
+<!-- ===================== TAB AGENDA ===================== -->
+<section class="section" id="tab-agenda">
+  <div class="card">
+    <div style="background:var(--accent2);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:14px">
+      📅 AGENDA PEKERJAAN
+    </div>
+    <div style="background:var(--bg2);padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:10px">➕ TAMBAH AGENDA</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label class="fl">TANGGAL <span class="req">*</span></label>
+          <input type="date" id="ag-tgl" class="fi">
+        </div>
+        <div class="fg">
+          <label class="fl">PRIORITAS <span class="req">*</span></label>
+          <select id="ag-prio" class="fi">
+            <option value="">— Pilih —</option>
+            <option value="Tinggi">🔴 Tinggi</option>
+            <option value="Sedang">🟡 Sedang</option>
+            <option value="Rendah">🟢 Rendah</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">PIC / PERSONIL <span class="req">*</span></label>
+          <select id="ag-pic" class="fi">
+            <option value="">— Pilih Personil —</option>
+            <option>Syukril (Supervisor)</option>
+            <option>Solaeman (Foreman)</option>
+            <option>Sumartono</option>
+            <option>Joko Susanto</option>
+            <option>Dasrul</option>
+            <option>Ridwan Naufal</option>
+            <option>Ilham Kristyanto</option>
+            <option>Sakim</option>
+            <option>Aris Munandar</option>
+            <option>Nanang Bimasuka</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">LOKASI / AREA</label>
+          <input type="text" id="ag-lokasi" class="fi" placeholder="Contoh: Basement, Lt 3, Rooftop...">
+        </div>
+      </div>
+      <div class="fg" style="margin-top:8px">
+        <label class="fl">KETERANGAN PEKERJAAN <span class="req">*</span></label>
+        <textarea id="ag-desc" class="fi" rows="3" placeholder="Deskripsi pekerjaan yang akan dilakukan..."></textarea>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn bprim" onclick="simpanAgenda()">📅 SIMPAN AGENDA</button>
+        <button class="btn bout" onclick="resetAgenda()">✕ BERSIHKAN</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text2)">FILTER:</span>
+      <button class="btn bout bsm" id="agf-semua" onclick="filterAgenda('semua')" style="border-color:var(--accent2);color:var(--accent2)">Semua</button>
+      <button class="btn bout bsm" id="agf-pending" onclick="filterAgenda('pending')">Pending</button>
+      <button class="btn bout bsm" id="agf-selesai" onclick="filterAgenda('selesai')">Selesai</button>
+    </div>
+    <div id="ag-list"></div>
+  </div>
+</section>
+
 </main>
 <div id="toast"></div>
 
@@ -899,6 +963,7 @@ function showTab(id,btn,isVendor){
   btn.classList.add(isVendor?'vactive':'active');
   if(id==='dashboard') renderDash();
   if(id==='riwayat') renderRiwayat();
+  renderAgenda();
   if(id==='lap-internal') renderLapI();
   if(id==='lap-vendor') renderLapV();
 }
@@ -1927,6 +1992,151 @@ function batalEditVendor(){
   document.getElementById('v-edit-idx').value = '';
   document.getElementById('v-edit-banner').style.display = 'none';
   resetV();
+}
+
+
+// ===================== AGENDA =====================
+let LOG_AG = JSON.parse(localStorage.getItem('pm_agenda_v1')||'[]');
+let agFilterMode = 'semua';
+let agEditIdx = -1;
+
+function simpanAgenda(){
+  const tgl  = document.getElementById('ag-tgl').value;
+  const prio = document.getElementById('ag-prio').value;
+  const pic  = document.getElementById('ag-pic').value;
+  const lok  = document.getElementById('ag-lokasi').value.trim();
+  const desc = document.getElementById('ag-desc').value.trim();
+  if(!tgl||!prio||!pic||!desc){alert('⚠️ Lengkapi tanggal, prioritas, PIC, dan keterangan');return;}
+  const record = {
+    id: agEditIdx>=0 ? LOG_AG[agEditIdx].id : 'AG'+Date.now(),
+    ts: new Date().toISOString(), tgl, prio, pic, lokasi:lok||'-', desc, status:'Pending'
+  };
+  if(agEditIdx>=0){
+    record.status = LOG_AG[agEditIdx].status;
+    LOG_AG[agEditIdx] = record;
+    agEditIdx = -1;
+    document.getElementById('ag-edit-banner') && (document.getElementById('ag-edit-banner').style.display='none');
+  } else {
+    LOG_AG.unshift(record);
+  }
+  localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+  sendToSheets({...record, type:'agenda'});
+  showToast('📅 Agenda tersimpan!','vendor');
+  resetAgenda();
+  renderAgenda();
+}
+
+function resetAgenda(){
+  ['ag-tgl','ag-prio','ag-pic','ag-lokasi','ag-desc'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value='';
+  });
+  agEditIdx=-1;
+  const b = document.getElementById('ag-edit-banner');
+  if(b) b.style.display='none';
+}
+
+function selesaiAgenda(idx){
+  if(!confirm('Tandai agenda ini sebagai Selesai?')) return;
+  LOG_AG[idx].status='Selesai';
+  LOG_AG[idx].tglSelesai = new Date().toLocaleDateString('id-ID');
+  localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+  showToast('✅ Agenda ditandai selesai','internal');
+  renderAgenda();
+}
+
+function hapusAgenda(idx){
+  if(!confirm('Hapus agenda ini?')) return;
+  LOG_AG.splice(idx,1);
+  localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+  showToast('🗑️ Agenda dihapus','internal');
+  renderAgenda();
+}
+
+function editAgenda(idx){
+  const d = LOG_AG[idx];
+  document.getElementById('ag-tgl').value = d.tgl||'';
+  document.getElementById('ag-prio').value = d.prio||'';
+  document.getElementById('ag-pic').value = d.pic||'';
+  document.getElementById('ag-lokasi').value = d.lokasi!=='-'?d.lokasi:'';
+  document.getElementById('ag-desc').value = d.desc||'';
+  agEditIdx = idx;
+  let b = document.getElementById('ag-edit-banner');
+  if(!b){
+    b = document.createElement('div');
+    b.id='ag-edit-banner';
+    b.style.cssText='background:#b5860d;color:#fff;padding:8px 14px;margin-bottom:10px;font-family:var(--mono);font-size:11px;font-weight:600;display:flex;justify-content:space-between;align-items:center';
+    b.innerHTML='<span>✏️ MODE EDIT AGENDA</span><button onclick="resetAgenda()" style="background:none;border:1px solid #fff;color:#fff;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer">✕ BATAL</button>';
+    document.getElementById('ag-tgl').closest('.card').querySelector('.fg').before(b);
+  }
+  b.style.display='flex';
+  window.scrollTo(0,0);
+}
+
+function filterAgenda(mode){
+  agFilterMode=mode;
+  ['semua','pending','selesai'].forEach(m=>{
+    const el=document.getElementById('agf-'+m);
+    if(el){el.style.borderColor=m===mode?'var(--accent2)':'var(--border)';el.style.color=m===mode?'var(--accent2)':'var(--text2)';}
+  });
+  renderAgenda();
+}
+
+function renderAgenda(){
+  const el = document.getElementById('ag-list');
+  if(!el) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+
+  let list = [...LOG_AG];
+  if(agFilterMode==='pending') list=list.filter(d=>d.status==='Pending');
+  else if(agFilterMode==='selesai') list=list.filter(d=>d.status==='Selesai');
+
+  if(!list.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text2);font-family:var(--mono);font-size:11px">📅 Belum ada agenda</div>';
+    return;
+  }
+
+  const prioColor={'Tinggi':'#e74c3c','Sedang':'#f39c12','Rendah':'#27ae60'};
+  el.innerHTML = list.map((d,i)=>{
+    const origIdx = LOG_AG.indexOf(d);
+    const tglDate = new Date(d.tgl); tglDate.setHours(0,0,0,0);
+    const diff = Math.round((tglDate-today)/86400000);
+    const isDone = d.status==='Selesai';
+    const isToday = diff===0;
+    const isTomorrow = diff===1;
+    const isOverdue = diff<0 && !isDone;
+
+    let badge='';
+    if(isDone) badge='<span style="background:#27ae60;color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">✅ SELESAI</span>';
+    else if(isOverdue) badge='<span style="background:#e74c3c;color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">🔴 OVERDUE</span>';
+    else if(isToday) badge='<span style="background:#e67e22;color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">⚡ HARI INI</span>';
+    else if(isTomorrow) badge='<span style="background:#2980b9;color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">📅 BESOK</span>';
+
+    const diffStr = isDone?(d.tglSelesai?'Selesai '+d.tglSelesai:'Selesai'):
+      isOverdue?'Terlambat '+Math.abs(diff)+' hari':
+      isToday?'Hari ini!':
+      isTomorrow?'Besok':\`${diff} hari lagi\`;
+
+    return \`<div class="hi" style="opacity:\${isDone?0.6:1};border-left:3px solid \${isDone?'#27ae60':prioColor[d.prio]||'#888'}">
+      <div class="hih">
+        <div>
+          <div class="hieq">\${d.desc}</div>
+          <div class="himeta">📅 \${new Date(d.tgl).toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · \${diffStr}</div>
+          <div class="himeta">👤 \${d.pic}\${d.lokasi!=='-'?' · 📍 '+d.lokasi:''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span style="background:\${prioColor[d.prio]||'#888'};color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">\${d.prio}</span>
+          \${badge}
+          \${!isDone?\`<div style="display:flex;gap:4px;margin-top:2px">
+            <button class="btn bout bsm" onclick="editAgenda(\${origIdx})" style="font-size:9px">✏️</button>
+            <button class="btn bout bsm" onclick="selesaiAgenda(\${origIdx})" style="font-size:9px">✅</button>
+            <button class="btn bout bsm" onclick="hapusAgenda(\${origIdx})" style="font-size:9px;color:var(--danger)">🗑️</button>
+          </div>\`:\`<button class="btn bout bsm" onclick="hapusAgenda(\${origIdx})" style="font-size:9px;color:var(--danger);margin-top:2px">🗑️</button>\`}
+        </div>
+      </div>
+    </div>\`;
+  }).join('');
 }
 
 // ===================== BOOT =====================
