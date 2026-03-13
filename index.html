@@ -177,6 +177,10 @@ textarea{resize:vertical;min-height:65px}
   .section { display: block !important; }
 }
 .print-area { display: none; }
+
+.pic-opt{padding:8px 12px;font-family:var(--mono);font-size:11px;cursor:pointer;}
+.pic-opt:hover{background:var(--bg2);}
+.pic-opt.selected{background:var(--accent2);color:#fff;}
 </style>
 </head>
 <body>
@@ -283,19 +287,24 @@ textarea{resize:vertical;min-height:65px}
       <div class="fg"><label>Tanggal *</label><input type="date" id="i-tgl"></div>
       <div class="fg"><label>Jam Mulai</label><input type="time" id="i-jam"></div>
       <div class="fg"><label>Personil / PIC *</label>
-        <select id="i-tek">
-          <option value="">— Pilih Personil —</option>
-          <option>Syukril (Supervisor)</option>
-          <option>Solaeman (Foreman)</option>
-          <option>Sumartono</option>
-          <option>Joko Susanto</option>
-          <option>Dasrul</option>
-          <option>Ridwan Naufal</option>
-          <option>Ilham Kristyanto</option>
-          <option>Sakim</option>
-          <option>Aris Munandar</option>
-          <option>Nanang Bimasuka</option>
-        </select>
+        <div class="pic-multi" id="i-tek-wrap">
+  <div class="pic-selected" id="i-tek-display" onclick="togglePicDropdown('i-tek')" style="cursor:pointer;min-height:32px;padding:6px 8px;border:1px solid var(--border);background:var(--bg2);font-family:var(--mono);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    <span style="color:var(--text2)" id="i-tek-placeholder">— Pilih maks. 2 personil —</span>
+  </div>
+  <div class="pic-dropdown" id="i-tek-dropdown" style="display:none;position:absolute;z-index:100;background:var(--bg);border:1px solid var(--border);width:100%;max-height:200px;overflow-y:auto">
+<div class="pic-opt" data-val="Syukril (Supervisor)" onclick="togglePic(this,'i-tek')">Syukril (Supervisor)</div>
+<div class="pic-opt" data-val="Solaeman (Foreman)" onclick="togglePic(this,'i-tek')">Solaeman (Foreman)</div>
+<div class="pic-opt" data-val="Sumartono" onclick="togglePic(this,'i-tek')">Sumartono</div>
+<div class="pic-opt" data-val="Joko Susanto" onclick="togglePic(this,'i-tek')">Joko Susanto</div>
+<div class="pic-opt" data-val="Dasrul" onclick="togglePic(this,'i-tek')">Dasrul</div>
+<div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'i-tek')">Ridwan Naufal</div>
+<div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'i-tek')">Ilham Kristyanto</div>
+<div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'i-tek')">Sakim</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'i-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'i-tek')">Nanang Bimasuka</div>
+  </div>
+  <input type="hidden" id="i-tek" value="">
+</div>
       </div>
       <!-- PM: Equipment -->
       <div class="fg" id="f-pm-eq">
@@ -509,13 +518,24 @@ textarea{resize:vertical;min-height:65px}
       <option value="Lift">Vendor Lift</option>
       <option value="STP">Vendor STP</option>
     </select>
-    <select id="rv-tek" onchange="renderRiwayat()">
-      <option value="">Semua Personil</option>
-      <option>Syukril (Supervisor)</option><option>Solaeman (Foreman)</option>
-      <option>Sumartono</option><option>Joko Susanto</option><option>Dasrul</option>
-      <option>Ridwan Naufal</option><option>Ilham Kristyanto</option>
-      <option>Sakim</option><option>Aris Munandar</option><option>Nanang Bimasuka</option>
-    </select>
+    <div class="pic-multi" id="rv-tek-wrap">
+  <div class="pic-selected" id="rv-tek-display" onclick="togglePicDropdown('rv-tek')" style="cursor:pointer;min-height:32px;padding:6px 8px;border:1px solid var(--border);background:var(--bg2);font-family:var(--mono);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    <span style="color:var(--text2)" id="rv-tek-placeholder">— Pilih maks. 2 personil —</span>
+  </div>
+  <div class="pic-dropdown" id="rv-tek-dropdown" style="display:none;position:absolute;z-index:100;background:var(--bg);border:1px solid var(--border);width:100%;max-height:200px;overflow-y:auto">
+<div class="pic-opt" data-val="Syukril (Supervisor)" onclick="togglePic(this,'rv-tek')">Syukril (Supervisor)</div>
+<div class="pic-opt" data-val="Solaeman (Foreman)" onclick="togglePic(this,'rv-tek')">Solaeman (Foreman)</div>
+<div class="pic-opt" data-val="Sumartono" onclick="togglePic(this,'rv-tek')">Sumartono</div>
+<div class="pic-opt" data-val="Joko Susanto" onclick="togglePic(this,'rv-tek')">Joko Susanto</div>
+<div class="pic-opt" data-val="Dasrul" onclick="togglePic(this,'rv-tek')">Dasrul</div>
+<div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'rv-tek')">Ridwan Naufal</div>
+<div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'rv-tek')">Ilham Kristyanto</div>
+<div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'rv-tek')">Sakim</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'rv-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'rv-tek')">Nanang Bimasuka</div>
+  </div>
+  <input type="hidden" id="rv-tek" value="">
+</div>
     <select id="rv-kondisi" onchange="renderRiwayat()">
       <option value="">Semua Kondisi</option>
       <option>Normal</option><option>Perlu Perhatian</option><option>Rusak</option>
@@ -695,13 +715,24 @@ textarea{resize:vertical;min-height:65px}
         <div class="fg"><label>Satuan</label><input type="text" id="mp-sat" readonly style="background:var(--bg2)"></div>
       </div>
       <div class="fg"><label>Personil *</label>
-        <select id="mp-tek">
-          <option value="">— Pilih —</option>
-          <option>Syukril (Supervisor)</option><option>Solaeman (Foreman)</option>
-          <option>Sumartono</option><option>Joko Susanto</option><option>Dasrul</option>
-          <option>Ridwan Naufal</option><option>Ilham Kristyanto</option>
-          <option>Sakim</option><option>Aris Munandar</option><option>Nanang Bimasuka</option>
-        </select>
+        <div class="pic-multi" id="mp-tek-wrap">
+  <div class="pic-selected" id="mp-tek-display" onclick="togglePicDropdown('mp-tek')" style="cursor:pointer;min-height:32px;padding:6px 8px;border:1px solid var(--border);background:var(--bg2);font-family:var(--mono);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    <span style="color:var(--text2)" id="mp-tek-placeholder">— Pilih maks. 2 personil —</span>
+  </div>
+  <div class="pic-dropdown" id="mp-tek-dropdown" style="display:none;position:absolute;z-index:100;background:var(--bg);border:1px solid var(--border);width:100%;max-height:200px;overflow-y:auto">
+<div class="pic-opt" data-val="Syukril (Supervisor)" onclick="togglePic(this,'mp-tek')">Syukril (Supervisor)</div>
+<div class="pic-opt" data-val="Solaeman (Foreman)" onclick="togglePic(this,'mp-tek')">Solaeman (Foreman)</div>
+<div class="pic-opt" data-val="Sumartono" onclick="togglePic(this,'mp-tek')">Sumartono</div>
+<div class="pic-opt" data-val="Joko Susanto" onclick="togglePic(this,'mp-tek')">Joko Susanto</div>
+<div class="pic-opt" data-val="Dasrul" onclick="togglePic(this,'mp-tek')">Dasrul</div>
+<div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'mp-tek')">Ridwan Naufal</div>
+<div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'mp-tek')">Ilham Kristyanto</div>
+<div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'mp-tek')">Sakim</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'mp-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'mp-tek')">Nanang Bimasuka</div>
+  </div>
+  <input type="hidden" id="mp-tek" value="">
+</div>
       </div>
       <div class="fg"><label>Dipakai Untuk *</label>
         <input type="text" id="mp-untuk" placeholder="misal: Ganti lampu koridor Lt 3, Servis pompa, Complaint unit 502">
@@ -799,19 +830,24 @@ textarea{resize:vertical;min-height:65px}
         </div>
         <div class="fg">
           <label class="fl">PIC / PERSONIL <span class="req">*</span></label>
-          <select id="ag-pic" class="fi">
-            <option value="">— Pilih Personil —</option>
-            <option>Syukril (Supervisor)</option>
-            <option>Solaeman (Foreman)</option>
-            <option>Sumartono</option>
-            <option>Joko Susanto</option>
-            <option>Dasrul</option>
-            <option>Ridwan Naufal</option>
-            <option>Ilham Kristyanto</option>
-            <option>Sakim</option>
-            <option>Aris Munandar</option>
-            <option>Nanang Bimasuka</option>
-          </select>
+          <div class="pic-multi" id="ag-pic-wrap">
+  <div class="pic-selected" id="ag-pic-display" onclick="togglePicDropdown('ag-pic')" style="cursor:pointer;min-height:32px;padding:6px 8px;border:1px solid var(--border);background:var(--bg2);font-family:var(--mono);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+    <span style="color:var(--text2)" id="ag-pic-placeholder">— Pilih maks. 2 personil —</span>
+  </div>
+  <div class="pic-dropdown" id="ag-pic-dropdown" style="display:none;position:absolute;z-index:100;background:var(--bg);border:1px solid var(--border);width:100%;max-height:200px;overflow-y:auto">
+<div class="pic-opt" data-val="Syukril (Supervisor)" onclick="togglePic(this,'ag-pic')">Syukril (Supervisor)</div>
+<div class="pic-opt" data-val="Solaeman (Foreman)" onclick="togglePic(this,'ag-pic')">Solaeman (Foreman)</div>
+<div class="pic-opt" data-val="Sumartono" onclick="togglePic(this,'ag-pic')">Sumartono</div>
+<div class="pic-opt" data-val="Joko Susanto" onclick="togglePic(this,'ag-pic')">Joko Susanto</div>
+<div class="pic-opt" data-val="Dasrul" onclick="togglePic(this,'ag-pic')">Dasrul</div>
+<div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'ag-pic')">Ridwan Naufal</div>
+<div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'ag-pic')">Ilham Kristyanto</div>
+<div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'ag-pic')">Sakim</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'ag-pic')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'ag-pic')">Nanang Bimasuka</div>
+  </div>
+  <input type="hidden" id="ag-pic" value="">
+</div>
         </div>
         <div class="fg">
           <label class="fl">LOKASI / AREA</label>
@@ -1179,6 +1215,7 @@ function simpanInternal(){
 }
 
 function resetI(){
+  resetPicField('i-tek');
   document.getElementById('i-cat').value='';
   document.getElementById('i-tek').value='';
   resetIFields();
@@ -2029,7 +2066,8 @@ function simpanAgenda(){
 }
 
 function resetAgenda(){
-  ['ag-tgl','ag-prio','ag-pic','ag-lokasi','ag-desc'].forEach(function(id){
+  resetPicField('ag-pic');
+  ['ag-tgl','ag-prio','ag-lokasi','ag-desc'].forEach(function(id){
     var el = document.getElementById(id);
     if(el) el.value='';
   });
@@ -2141,6 +2179,83 @@ function renderAgenda(){
   }).join('');
 }
 
+
+// ===================== MULTI PIC =====================
+function togglePicDropdown(fid){
+  var dd = document.getElementById(fid+'-dropdown');
+  if(!dd) return;
+  var isOpen = dd.style.display !== 'none';
+  // Close all other dropdowns first
+  document.querySelectorAll('.pic-dropdown').forEach(function(d){ d.style.display='none'; });
+  dd.style.display = isOpen ? 'none' : 'block';
+}
+
+function togglePic(el, fid){
+  var val = el.getAttribute('data-val');
+  var hiddenEl = document.getElementById(fid);
+  var display = document.getElementById(fid+'-display');
+  var placeholder = document.getElementById(fid+'-placeholder');
+  var current = hiddenEl.value ? hiddenEl.value.split('|') : [];
+
+  if(el.classList.contains('selected')){
+    // Deselect
+    el.classList.remove('selected');
+    el.style.background = '';
+    el.style.color = '';
+    current = current.filter(function(v){ return v !== val; });
+  } else {
+    if(current.length >= 2){ alert('Maksimal 2 personil'); return; }
+    el.classList.add('selected');
+    el.style.background = 'var(--accent2)';
+    el.style.color = '#fff';
+    current.push(val);
+  }
+
+  hiddenEl.value = current.join('|');
+
+  // Update display
+  if(placeholder) placeholder.style.display = current.length ? 'none' : 'inline';
+  // Remove old chips
+  display.querySelectorAll('.pic-chip').forEach(function(c){ c.remove(); });
+  current.forEach(function(name){
+    var chip = document.createElement('span');
+    chip.className = 'pic-chip';
+    chip.style.cssText = 'background:var(--accent2);color:#fff;padding:2px 8px;font-size:10px;font-family:var(--mono)';
+    chip.textContent = name.split(' ')[0];
+    display.insertBefore(chip, placeholder || display.firstChild);
+  });
+
+  if(current.length >= 2){
+    document.getElementById(fid+'-dropdown').style.display='none';
+  }
+}
+
+function resetPicField(fid){
+  var hiddenEl = document.getElementById(fid);
+  if(!hiddenEl) return;
+  hiddenEl.value = '';
+  var display = document.getElementById(fid+'-display');
+  if(display){
+    display.querySelectorAll('.pic-chip').forEach(function(c){ c.remove(); });
+    var ph = document.getElementById(fid+'-placeholder');
+    if(ph) ph.style.display='inline';
+  }
+  var dd = document.getElementById(fid+'-dropdown');
+  if(dd){
+    dd.querySelectorAll('.pic-opt').forEach(function(o){
+      o.classList.remove('selected');
+      o.style.background='';
+      o.style.color='';
+    });
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.pic-multi')){
+    document.querySelectorAll('.pic-dropdown').forEach(function(d){ d.style.display='none'; });
+  }
+});
 
 // ===================== BOOT =====================
 initFilters();renderDash();
