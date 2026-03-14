@@ -450,38 +450,34 @@ textarea{resize:vertical;min-height:65px}
     </div>
 
     <!-- FOTO PEKERJAAN -->
-    <div class="fg" style="margin-top:10px">
-      <label class="fl">📷 FOTO PEKERJAAN <span style="color:var(--text2);font-size:9px">(OPSIONAL, MAKS. 3 FOTO)</span></label>
-      <div id="i-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
-      <label style="display:inline-block;cursor:pointer;background:var(--bg2);border:1px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2)">
-        📎 Pilih Foto
-        <input type="file" id="i-foto" accept="image/*" multiple style="display:none" onchange="previewFoto(this,'i-foto-preview',3)">
-      </label>
-      <span id="i-foto-count" style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-left:8px">0/3 foto</span>
-    </div>
-
-
-    <!-- FOTO PEKERJAAN -->
     <div style="margin-top:12px;border:1px solid var(--border);padding:12px;background:var(--bg2)">
-      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px">📷 FOTO PEKERJAAN (OPSIONAL)</div>
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:10px">📷 FOTO PEKERJAAN (OPSIONAL, MAKS. 3 FOTO)</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="foto-upload-btn" for="foto-1" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
-          📷 Foto 1 <span id="foto-1-name" style="color:var(--accent2)"></span>
-        </label>
-        <input type="file" id="foto-1" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-1')">
-        <label class="foto-upload-btn" for="foto-2" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
-          📷 Foto 2 <span id="foto-2-name" style="color:var(--accent2)"></span>
-        </label>
-        <input type="file" id="foto-2" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-2')">
-        <label class="foto-upload-btn" for="foto-3" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
-          📷 Foto 3 <span id="foto-3-name" style="color:var(--accent2)"></span>
-        </label>
-        <input type="file" id="foto-3" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-3')">
+        <div style="text-align:center">
+          <label for="foto-1" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border:2px dashed var(--border);background:var(--bg);gap:4px">
+            <span id="foto-1-thumb" style="font-size:22px">📷</span>
+            <span style="font-family:var(--mono);font-size:8px;color:var(--text2)" id="foto-1-lbl">Foto 1</span>
+          </label>
+          <input type="file" id="foto-1" accept="image/*" style="display:none" onchange="previewFoto(this,'foto-1')">
+        </div>
+        <div style="text-align:center">
+          <label for="foto-2" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border:2px dashed var(--border);background:var(--bg);gap:4px">
+            <span id="foto-2-thumb" style="font-size:22px">📷</span>
+            <span style="font-family:var(--mono);font-size:8px;color:var(--text2)" id="foto-2-lbl">Foto 2</span>
+          </label>
+          <input type="file" id="foto-2" accept="image/*" style="display:none" onchange="previewFoto(this,'foto-2')">
+        </div>
+        <div style="text-align:center">
+          <label for="foto-3" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border:2px dashed var(--border);background:var(--bg);gap:4px">
+            <span id="foto-3-thumb" style="font-size:22px">📷</span>
+            <span style="font-family:var(--mono);font-size:8px;color:var(--text2)" id="foto-3-lbl">Foto 3</span>
+          </label>
+          <input type="file" id="foto-3" accept="image/*" style="display:none" onchange="previewFoto(this,'foto-3')">
+        </div>
       </div>
-      <div id="foto-preview" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text2);margin-top:6px">Tap kotak foto → pilih dari galeri atau ambil foto baru</div>
       <div id="foto-upload-status" style="font-family:var(--mono);font-size:10px;margin-top:6px;color:var(--text2)"></div>
     </div>
-
     <div class="brow">
       <button class="btn bprimary" onclick="simpanInternal()">💾 SIMPAN PEKERJAAN</button>
       <button class="btn bout" onclick="resetI()">✕ BERSIHKAN</button>
@@ -2538,23 +2534,25 @@ var FOLDER_COMPLAINT = '16kM75VdQ0WzIJYpLeRdn9_c6Im23fxkh';
 var FOLDER_RENOVASI  = '1SHNWqJ5fT0m0tkIUywLZZJnIKnl8oZ2O';
 
 function previewFoto(input, fid){
-  var nameEl = document.getElementById(fid+'-name');
-  var preview = document.getElementById('foto-preview');
   if(!input.files || !input.files[0]) return;
   var file = input.files[0];
-  if(nameEl) nameEl.textContent = '✓ '+file.name.substring(0,15)+(file.name.length>15?'...':'');
-
-  // Show thumbnail preview
   var reader = new FileReader();
   reader.onload = function(e){
-    var existing = document.getElementById('prev-'+fid);
-    if(existing) existing.remove();
-    var img = document.createElement('div');
-    img.id = 'prev-'+fid;
-    img.style.cssText = 'position:relative;display:inline-block';
-    img.innerHTML = '<img src="'+e.target.result+'" style="width:70px;height:70px;object-fit:cover;border:1px solid var(--border)">'
-      +'<span onclick="hapusFoto(\''+fid+'\')" style="position:absolute;top:0;right:0;background:#e74c3c;color:#fff;font-size:9px;padding:1px 4px;cursor:pointer">✕</span>';
-    if(preview) preview.appendChild(img);
+    var label = input.previousElementSibling;
+    if(label){
+      label.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;border:2px solid var(--accent2);background:var(--bg);gap:4px;position:relative;overflow:hidden;padding:0';
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:80px;height:80px;object-fit:cover';
+      var btn = document.createElement('div');
+      btn.textContent = '✕';
+      btn.style.cssText = 'position:absolute;top:0;right:0;background:#e74c3c;color:#fff;font-size:9px;padding:2px 5px;cursor:pointer;z-index:10';
+      btn.setAttribute('data-fid', fid);
+      btn.onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); hapusFoto(this.getAttribute('data-fid')); };
+      label.innerHTML = '';
+      label.appendChild(img);
+      label.appendChild(btn);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -2562,10 +2560,16 @@ function previewFoto(input, fid){
 function hapusFoto(fid){
   var input = document.getElementById(fid);
   if(input) input.value = '';
-  var nameEl = document.getElementById(fid+'-name');
-  if(nameEl) nameEl.textContent = '';
-  var prev = document.getElementById('prev-'+fid);
-  if(prev) prev.remove();
+  var label = input ? input.previousElementSibling : null;
+  if(label){
+    label.style.border = '2px dashed var(--border)';
+    label.style.padding = '';
+    label.style.overflow = '';
+    label.style.position = '';
+    var num = fid.replace('foto-','');
+    label.innerHTML = '<span style="font-size:22px">📷</span>'
+      +'<span style="font-family:var(--mono);font-size:8px;color:var(--text2)">Foto '+num+'</span>';
+  }
 }
 
 function resetFoto(){
