@@ -1296,21 +1296,55 @@ function simpanInternal(){
   // Upload foto ke Drive dulu, baru kirim ke Sheets
   var jt = currentJobType;
   var prefix = (jt==='pm'?(record.id||'pm'):jt==='complaint'?'unit'+(record.unit||''):('ren'+(record.unit||'')));
-  uploadSemuaFoto(jt, prefix, function(fotoUrls){
-    var fotoUrlStr = fotoUrls.join(' | ');
-    sendToSheets(Object.assign({}, record, {type:jt, fotoUrls:fotoUrlStr})).then(function(result){
+  // Baca file SEBELUM reset form
+  var fotoInputs = [];
+  ['foto-1','foto-2','foto-3'].forEach(function(fid){
+    var inp = document.getElementById(fid);
+    if(inp && inp.files && inp.files[0]) fotoInputs.push({fid:fid, file:inp.files[0]});
+  });
+
+  resetI(); // reset form segera supaya UX cepat
+
+  // Upload foto & kirim ke Sheets
+  if(fotoInputs.length === 0){
+    // Tidak ada foto, langsung kirim ke Sheets
+    sendToSheets(Object.assign({}, record, {type:jt, fotoUrls:'-'})).then(function(result){
       if(result.status==='success'){
-        showToast('✅ Tersimpan + foto ke Drive!','internal');
+        showToast('✅ Tersimpan + dikirim ke Sheets!','internal');
         updateSheetsStatus(true);
-      } else if(result.status==='local_only'){
-        showToast('✅ Tersimpan lokal','internal');
       } else {
         showToast('✅ Tersimpan lokal','internal');
       }
     });
-    resetFoto();
-  });
-  resetI();
+  } else {
+    showToast('📷 Mengupload '+fotoInputs.length+' foto...','internal');
+    var results = [], done = 0;
+    fotoInputs.forEach(function(f, i){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var base64 = e.target.result.split(',')[1];
+        var mime   = f.file.type || 'image/jpeg';
+        var ext    = f.file.name.split('.').pop() || 'jpg';
+        var nama   = prefix+'_foto'+(i+1)+'_'+Date.now()+'.'+ext;
+        uploadFotoKeDrive(jt, nama, base64, mime, function(err, url){
+          if(url) results.push(url);
+          done++;
+          if(done === fotoInputs.length){
+            var fotoUrlStr = results.length ? results.join(' | ') : '-';
+            sendToSheets(Object.assign({}, record, {type:jt, fotoUrls:fotoUrlStr})).then(function(result){
+              if(result.status==='success'){
+                showToast('✅ Tersimpan + '+results.length+' foto ke Drive!','internal');
+                updateSheetsStatus(true);
+              } else {
+                showToast('✅ Tersimpan lokal','internal');
+              }
+            });
+          }
+        });
+      };
+      reader.readAsDataURL(f.file);
+    });
+  }
 }
 
 function resetI(){
