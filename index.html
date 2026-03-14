@@ -2626,12 +2626,18 @@ function uploadFotoKeDrive(type, namaFile, base64Data, mimeType, callback){
   fetch(SHEETS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
+    redirect: 'follow',
     body: JSON.stringify(payload)
   })
-  .then(function(r){ return r.json(); })
-  .then(function(res){
-    if(res.status==='success') callback(null, res.url);
-    else callback(res.message||'Upload gagal: '+(res.message||'unknown'), null);
+  .then(function(r){ return r.text(); })
+  .then(function(txt){
+    try {
+      var res = JSON.parse(txt);
+      if(res.status==='success') callback(null, res.url);
+      else callback(res.message||'Upload gagal', null);
+    } catch(e) {
+      callback('Parse error: '+txt.substring(0,100), null);
+    }
   })
   .catch(function(err){ callback(err.toString(), null); });
 }
