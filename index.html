@@ -209,6 +209,7 @@ textarea{resize:vertical;min-height:65px}
   <button onclick="showTab('lap-internal',this,false)">📄 Laporan Tim</button>
   <button onclick="showTab('lap-vendor',this,true)">📄 Laporan Vendor</button>
   <div class="nav-sep"></div>
+  <button onclick="showTab('lap-bulanan',this,false)">📊 Lap. Bulanan</button>
   <button onclick="showTab('sparepart',this,false)">📦 Spare Part</button>
   <button onclick="showTab('agenda',this,false)">📅 Agenda</button>
 </nav>
@@ -873,6 +874,37 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </section>
 
+
+<!-- ===================== TAB LAPORAN BULANAN ===================== -->
+<section class="section" id="tab-lap-bulanan">
+  <div class="card">
+    <div style="background:var(--accent2);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:14px">
+      📊 LAPORAN BULANAN MAINTENANCE
+    </div>
+
+    <!-- Filter bulan & tahun -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select id="lb-bln" class="fi" style="width:130px" onchange="renderLapBulanan()">
+        <option value="1">Januari</option><option value="2">Februari</option>
+        <option value="3">Maret</option><option value="4">April</option>
+        <option value="5">Mei</option><option value="6">Juni</option>
+        <option value="7">Juli</option><option value="8">Agustus</option>
+        <option value="9">September</option><option value="10">Oktober</option>
+        <option value="11">November</option><option value="12">Desember</option>
+      </select>
+      <select id="lb-thn" class="fi" style="width:90px" onchange="renderLapBulanan()">
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+      </select>
+      <button class="btn bprim" onclick="cetakLapBulanan()" style="margin-left:auto">🖨️ CETAK / PDF</button>
+    </div>
+
+    <!-- Konten laporan -->
+    <div id="lb-content"></div>
+  </div>
+</section>
+
 </main>
 <div id="toast"></div>
 
@@ -1000,6 +1032,13 @@ function showTab(id,btn,isVendor){
   if(id==='dashboard') renderDash();
   if(id==='riwayat') renderRiwayat();
   renderAgenda();
+  // Set default bulan di laporan bulanan
+  var d=new Date();
+  var lbBln=document.getElementById('lb-bln');
+  var lbThn=document.getElementById('lb-thn');
+  if(lbBln) lbBln.value=d.getMonth()+1;
+  if(lbThn) lbThn.value=d.getFullYear();
+  renderLapBulanan();
   if(id==='lap-internal') renderLapI();
   if(id==='lap-vendor') renderLapV();
 }
@@ -2256,6 +2295,176 @@ document.addEventListener('click', function(e){
     document.querySelectorAll('.pic-dropdown').forEach(function(d){ d.style.display='none'; });
   }
 });
+
+
+// ===================== LAPORAN BULANAN =====================
+function getLapBulFilter(){
+  var bln = parseInt(document.getElementById('lb-bln').value);
+  var thn = parseInt(document.getElementById('lb-thn').value);
+  return {bln:bln, thn:thn};
+}
+
+function inBulan(tglStr, bln, thn){
+  if(!tglStr) return false;
+  var d = new Date(tglStr);
+  return d.getMonth()+1 === bln && d.getFullYear() === thn;
+}
+
+function getNamaBulan(bln){
+  return ['','Januari','Februari','Maret','April','Mei','Juni',
+          'Juli','Agustus','September','Oktober','November','Desember'][bln];
+}
+
+function renderLapBulanan(){
+  var el = document.getElementById('lb-content');
+  if(!el) return;
+  var f = getLapBulFilter();
+  var bln = f.bln, thn = f.thn;
+  var namaBulan = getNamaBulan(bln);
+
+  // === PM RUTIN ===
+  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inBulan(d.tgl,bln,thn); });
+  var pmTotal = EQUIPMENT_DATA.length;
+  var pmDone  = {};
+  pmData.forEach(function(d){ if(d.id) pmDone[d.id]=true; });
+  var pmSelesai = Object.keys(pmDone).length;
+  var pmPct = pmTotal ? Math.round(pmSelesai/pmTotal*100) : 0;
+
+  // Overdue count
+  var today = new Date(); today.setHours(0,0,0,0);
+  var FREQ = {'3B':90,'6B':180,'12B':365};
+  var overduePM = 0;
+  EQUIPMENT_DATA.forEach(function(eq){
+    var last = new Date(eq.terakhir||'2020-01-01');
+    var days = FREQ[eq.freq]||90;
+    var due = new Date(last.getTime()+days*86400000);
+    if(due < today) overduePM++;
+  });
+
+  // Personil terbanyak
+  var personilCount = {};
+  pmData.forEach(function(d){
+    var p = d.teknisi||'-';
+    p.split('|').forEach(function(n){ personilCount[n]=(personilCount[n]||0)+1; });
+  });
+  var topPersonil = Object.keys(personilCount).sort(function(a,b){ return personilCount[b]-personilCount[a]; })[0]||'-';
+
+  // === COMPLAINT ===
+  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inBulan(d.tgl,bln,thn); });
+  var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
+  var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
+  var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
+  var cKatCount = {};
+  cData.forEach(function(d){ var k=d.kategoriKeluhan||'-'; cKatCount[k]=(cKatCount[k]||0)+1; });
+  var topKat = Object.keys(cKatCount).sort(function(a,b){ return cKatCount[b]-cKatCount[a]; })[0]||'-';
+
+  // === VENDOR ===
+  var vData = LOG_V.filter(function(d){ return inBulan(d.tgl,bln,thn); });
+  var vAC   = vData.filter(function(d){ return d.kat==='AC'; }).length;
+  var vLift = vData.filter(function(d){ return d.kat==='Lift'; }).length;
+  var vSTP  = vData.filter(function(d){ return d.kat==='STP'; }).length;
+
+  // === SPARE PART ===
+  var spPakai = JSON.parse(localStorage.getItem('sp_log_v1')||'[]');
+  var spRestk = JSON.parse(localStorage.getItem('sp_restock_v1')||'[]');
+  var spItems = JSON.parse(localStorage.getItem('sp_items_v1')||'[]');
+  var spPakaiBln = spPakai.filter(function(d){ return inBulan(d.tgl,bln,thn); });
+  var spRestBln  = spRestk.filter(function(d){ return inBulan(d.tgl,bln,thn); });
+  var spKritis   = spItems.filter(function(d){ return (d.stok||0) <= (d.min||3); }).length;
+
+  // === AGENDA ===
+  var agData    = LOG_AG.filter(function(d){ return inBulan(d.tgl,bln,thn); });
+  var agSelesai = agData.filter(function(d){ return d.status==='Selesai'; }).length;
+  var agPending = agData.filter(function(d){ return d.status==='Pending'; }).length;
+
+  // Bar helper
+  function bar(pct, color){
+    return '<div style="background:var(--border);height:8px;border-radius:0;margin:4px 0 8px">'
+      +'<div style="background:'+color+';height:8px;width:'+Math.min(pct,100)+'%;transition:width 0.5s"></div></div>';
+  }
+
+  function section(icon, title, rows, extra){
+    var html = '<div style="margin-bottom:20px;border:1px solid var(--border)">'
+      +'<div style="background:var(--bg2);padding:8px 12px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);border-bottom:1px solid var(--border)">'
+      +icon+' '+title+'</div>'
+      +'<div style="padding:12px">';
+    rows.forEach(function(r){
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-family:var(--mono);font-size:11px">'
+        +'<span style="color:var(--text2)">'+r[0]+'</span>'
+        +'<span style="font-weight:700;color:var(--text)">'+r[1]+'</span></div>';
+    });
+    if(extra) html += extra;
+    html += '</div></div>';
+    return html;
+  }
+
+  var html = '<div id="lb-printarea">';
+  html += '<div style="text-align:center;padding:16px 0;border-bottom:2px solid var(--accent2);margin-bottom:16px">'
+    +'<div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent2)">LAPORAN BULANAN MAINTENANCE</div>'
+    +'<div style="font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:4px">Menteng Regency Apartemen &nbsp;|&nbsp; '+namaBulan+' '+thn+'</div>'
+    +'</div>';
+
+  // PM
+  html += section('✅','PM RUTIN',[
+    ['Equipment selesai', pmSelesai+' / '+pmTotal+' ('+pmPct+'%)'],
+    ['Equipment overdue (saat ini)', overduePM+' equipment'],
+    ['Personil terbanyak', topPersonil+(topPersonil!=='-'?' ('+personilCount[topPersonil]+'x)':'')],
+    ['Total servis bulan ini', pmData.length+' record'],
+  ], bar(pmPct, pmPct>=80?'#27ae60':pmPct>=50?'#f39c12':'#e74c3c'));
+
+  // Complaint
+  html += section('📢','COMPLAINT TENANT',[
+    ['Total masuk', cData.length+' complaint'],
+    ['Selesai', cSelesai],
+    ['Proses', cProses],
+    ['Tindak Lanjut', cTindak],
+    ['Kategori terbanyak', topKat+(topKat!=='-'?' ('+cKatCount[topKat]+'x)':'')],
+  ]);
+
+  // Vendor
+  html += section('🏢','VENDOR',[
+    ['AC (Standby harian)', vAC > 0 ? vAC+' kunjungan' : 'Belum ada data'],
+    ['Lift (Target: 1x/bulan)', vLift+'/1x '+( vLift>=1?'✅':'❌')],
+    ['STP (Target: 2x/bulan)', vSTP+'/2x '+(vSTP>=2?'✅':vSTP===1?'⚠️':'❌')],
+  ]);
+
+  // Spare Part
+  html += section('📦','SPARE PART',[
+    ['Item dipakai bulan ini', spPakaiBln.length+' transaksi'],
+    ['Restock masuk', spRestBln.length+' transaksi'],
+    ['Item stok kritis (≤ minimum)', spKritis+' item'],
+  ]);
+
+  // Agenda
+  html += section('📅','AGENDA',[
+    ['Total agenda bulan ini', agData.length],
+    ['Selesai', agSelesai],
+    ['Pending / belum selesai', agPending],
+  ]);
+
+  html += '<div style="text-align:center;padding:12px;font-family:var(--mono);font-size:9px;color:var(--text2);border-top:1px solid var(--border);margin-top:8px">'
+    +'MMS MRA &nbsp;|&nbsp; Digenerate: '+new Date().toLocaleString('id-ID')+'</div>';
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+function cetakLapBulanan(){
+  var area = document.getElementById('lb-printarea');
+  if(!area){ alert('Generate laporan dulu'); return; }
+  var f = getLapBulFilter();
+  var judul = 'Laporan Bulanan MMS MRA - '+getNamaBulan(f.bln)+' '+f.thn;
+  var win = window.open('','_blank','width=800,height=900');
+  win.document.write('<html><head><title>'+judul+'</title>'
+    +'<style>body{font-family:Courier New,monospace;font-size:11px;color:#1a1814;background:#fff;padding:20px}'
+    +'*{box-sizing:border-box}'
+    +'</style></head><body>');
+  win.document.write(area.innerHTML);
+  win.document.write('</body></html>');
+  win.document.close();
+  setTimeout(function(){ win.print(); }, 500);
+}
+
 
 // ===================== BOOT =====================
 initFilters();renderDash();
