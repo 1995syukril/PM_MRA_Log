@@ -424,6 +424,39 @@ textarea{resize:vertical;min-height:65px}
       <textarea id="i-cat" style="margin-top:4px;width:100%;font-family:var(--sans);font-size:13px;padding:8px 10px;border:1px solid var(--border);background:var(--bg);color:var(--text);outline:none;resize:vertical;min-height:65px" placeholder="Catatan tambahan, material yang digunakan, tindak lanjut..."></textarea>
     </div>
 
+    <!-- FOTO PEKERJAAN -->
+    <div class="fg" style="margin-top:10px">
+      <label class="fl">📷 FOTO PEKERJAAN <span style="color:var(--text2);font-size:9px">(OPSIONAL, MAKS. 3 FOTO)</span></label>
+      <div id="i-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <label style="display:inline-block;cursor:pointer;background:var(--bg2);border:1px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2)">
+        📎 Pilih Foto
+        <input type="file" id="i-foto" accept="image/*" multiple style="display:none" onchange="previewFoto(this,'i-foto-preview',3)">
+      </label>
+      <span id="i-foto-count" style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-left:8px">0/3 foto</span>
+    </div>
+
+
+    <!-- FOTO PEKERJAAN -->
+    <div style="margin-top:12px;border:1px solid var(--border);padding:12px;background:var(--bg2)">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:8px">📷 FOTO PEKERJAAN (OPSIONAL)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="foto-upload-btn" for="foto-1" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
+          📷 Foto 1 <span id="foto-1-name" style="color:var(--accent2)"></span>
+        </label>
+        <input type="file" id="foto-1" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-1')">
+        <label class="foto-upload-btn" for="foto-2" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
+          📷 Foto 2 <span id="foto-2-name" style="color:var(--accent2)"></span>
+        </label>
+        <input type="file" id="foto-2" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-2')">
+        <label class="foto-upload-btn" for="foto-3" style="cursor:pointer;border:2px dashed var(--border);padding:8px 14px;font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:6px">
+          📷 Foto 3 <span id="foto-3-name" style="color:var(--accent2)"></span>
+        </label>
+        <input type="file" id="foto-3" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this,'foto-3')">
+      </div>
+      <div id="foto-preview" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+      <div id="foto-upload-status" style="font-family:var(--mono);font-size:10px;margin-top:6px;color:var(--text2)"></div>
+    </div>
+
     <div class="brow">
       <button class="btn bprimary" onclick="simpanInternal()">💾 SIMPAN PEKERJAAN</button>
       <button class="btn bout" onclick="resetI()">✕ BERSIHKAN</button>
@@ -1200,60 +1233,67 @@ function resetIFields(){
 
 // Override simpanInternal to handle all 3 types
 function simpanInternal(){
-  const tgl=document.getElementById('i-tgl').value;
-  const tek=document.getElementById('i-tek').value;
-  const jam=document.getElementById('i-jam').value;
-  const cat=document.getElementById('i-cat').value;
+  var tgl=document.getElementById('i-tgl').value;
+  var tek=document.getElementById('i-tek').value;
+  var jam=document.getElementById('i-jam').value;
+  var cat=document.getElementById('i-cat').value;
   if(!tgl||!tek){alert('⚠️ Lengkapi tanggal dan personil');return;}
 
-  const checks=[...document.querySelectorAll('#i-cl input:checked')].map(c=>c.value);
-  let record = {ts:new Date().toISOString(), jenis:'internal', jobType:currentJobType, tgl, jam, teknisi:tek, checks, catatan:cat};
+  var checks=[...document.querySelectorAll('#i-cl input:checked')].map(function(c){return c.value;});
+  var record = {ts:new Date().toISOString(), jenis:'internal', jobType:currentJobType, tgl:tgl, jam:jam, teknisi:tek, checks:checks, catatan:cat};
 
   if(currentJobType==='pm'){
-    const eqId=document.getElementById('i-eq').value;
-    const kondisi=document.querySelector('input[name="ikondisi"]:checked')?.value;
+    var eqId=document.getElementById('i-eq').value;
+    var kondisi=document.querySelector('input[name="ikondisi"]:checked')?document.querySelector('input[name="ikondisi"]:checked').value:null;
     if(!eqId||!kondisi){alert('⚠️ Pilih equipment dan kondisi');return;}
     if(!checks.length&&!confirm('Tidak ada checklist yang dicentang. Lanjutkan?'))return;
-    const eq=EQUIPMENT_DATA.find(e=>e.id===eqId);
-    record = {...record, id:eqId, nama:eq.nama, lokasi:eq.lokasi, kategori:eq.kategori, kondisi};
+    var eq=EQUIPMENT_DATA.find(function(e){return e.id===eqId;});
+    record = Object.assign({},record,{id:eqId, nama:eq.nama, lokasi:eq.lokasi, kategori:eq.kategori, kondisi:kondisi});
     eq.terakhir=tgl;
 
   } else if(currentJobType==='complaint'){
-    const unit=document.getElementById('c-unit').value;
-    const kat=document.getElementById('c-kat').value;
-    const desc=document.getElementById('c-desc').value.trim();
-    const status=document.querySelector('input[name="cstatus"]:checked')?.value;
+    var unit=document.getElementById('c-unit').value;
+    var kat=document.getElementById('c-kat').value;
+    var desc=document.getElementById('c-desc').value.trim();
+    var status=document.querySelector('input[name="cstatus"]:checked')?document.querySelector('input[name="cstatus"]:checked').value:null;
     if(!unit||!kat||!desc||!status){alert('⚠️ Lengkapi nomor unit, kategori, deskripsi, dan status');return;}
-    record = {...record, unit, kategoriKeluhan:kat, deskripsi:desc, kondisi:status, nama:`Complaint ${kat} — Unit ${unit}`};
+    record = Object.assign({},record,{unit:unit, kategoriKeluhan:kat, deskripsi:desc, kondisi:status, nama:'Complaint '+kat+' — Unit '+unit});
 
   } else if(currentJobType==='renovasi'){
-    const unit=document.getElementById('r-unit').value;
-    const desc=document.getElementById('r-desc').value.trim();
-    const status=document.querySelector('input[name="rstatus"]:checked')?.value;
-    const pic=document.getElementById('r-pic').value.trim();
-    const target=document.getElementById('r-target').value;
-    if(!unit||!desc||!status){alert('⚠️ Lengkapi nomor unit, jenis pekerjaan, dan status');return;}
-    record = {...record, unit, deskripsi:desc, kondisi:status, picUnit:pic, targetSelesai:target, nama:`Renovasi Unit ${unit}`};
+    var runit=document.getElementById('r-unit').value;
+    var rdesc=document.getElementById('r-desc').value.trim();
+    var rstatus=document.querySelector('input[name="rstatus"]:checked')?document.querySelector('input[name="rstatus"]:checked').value:null;
+    var rpic=document.getElementById('r-pic').value.trim();
+    var rtarget=document.getElementById('r-target').value;
+    if(!runit||!rdesc||!rstatus){alert('⚠️ Lengkapi nomor unit, jenis pekerjaan, dan status');return;}
+    record = Object.assign({},record,{unit:runit, deskripsi:rdesc, kondisi:rstatus, picUnit:rpic, targetSelesai:rtarget, nama:'Renovasi Unit '+runit});
   }
 
   LOG_I.unshift(record);
   localStorage.setItem('pm_internal_v1',JSON.stringify(LOG_I));
 
-  // Kirim ke Google Sheets
-  sendToSheets({...record, type: currentJobType}).then(result => {
-    if(result.status === 'success') {
-      showToast('✅ Tersimpan + dikirim ke Sheets!','internal');
-      updateSheetsStatus(true);
-    } else if(result.status === 'local_only') {
-      showToast('✅ Tersimpan lokal (Sheets belum terhubung)','internal');
-    } else {
-      showToast('✅ Tersimpan lokal — cek koneksi Sheets','internal');
-    }
+  // Upload foto ke Drive dulu, baru kirim ke Sheets
+  var jt = currentJobType;
+  var prefix = (jt==='pm'?(record.id||'pm'):jt==='complaint'?'unit'+(record.unit||''):('ren'+(record.unit||'')));
+  uploadSemuaFoto(jt, prefix, function(fotoUrls){
+    var fotoUrlStr = fotoUrls.join(' | ');
+    sendToSheets(Object.assign({}, record, {type:jt, fotoUrls:fotoUrlStr})).then(function(result){
+      if(result.status==='success'){
+        showToast('✅ Tersimpan + foto ke Drive!','internal');
+        updateSheetsStatus(true);
+      } else if(result.status==='local_only'){
+        showToast('✅ Tersimpan lokal','internal');
+      } else {
+        showToast('✅ Tersimpan lokal','internal');
+      }
+    });
+    resetFoto();
   });
   resetI();
 }
 
 function resetI(){
+  resetFotoField('i-foto','i-foto-preview');
   resetPicField('i-tek');
   document.getElementById('i-cat').value='';
   document.getElementById('i-tek').value='';
@@ -2463,6 +2503,116 @@ function cetakLapBulanan(){
   win.document.write('</body></html>');
   win.document.close();
   setTimeout(function(){ win.print(); }, 500);
+}
+
+
+
+// ===================== FOTO UPLOAD =====================
+var FOLDER_PM        = '1-xIoXHQAm5-07kF5A9gNcWUXqKVx2PU5';
+var FOLDER_COMPLAINT = '16kM75VdQ0WzIJYpLeRdn9_c6Im23fxkh';
+var FOLDER_RENOVASI  = '1SHNWqJ5fT0m0tkIUywLZZJnIKnl8oZ2O';
+
+function previewFoto(input, fid){
+  var nameEl = document.getElementById(fid+'-name');
+  var preview = document.getElementById('foto-preview');
+  if(!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if(nameEl) nameEl.textContent = '✓ '+file.name.substring(0,15)+(file.name.length>15?'...':'');
+
+  // Show thumbnail preview
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var existing = document.getElementById('prev-'+fid);
+    if(existing) existing.remove();
+    var img = document.createElement('div');
+    img.id = 'prev-'+fid;
+    img.style.cssText = 'position:relative;display:inline-block';
+    img.innerHTML = '<img src="'+e.target.result+'" style="width:70px;height:70px;object-fit:cover;border:1px solid var(--border)">'
+      +'<span onclick="hapusFoto(\''+fid+'\')" style="position:absolute;top:0;right:0;background:#e74c3c;color:#fff;font-size:9px;padding:1px 4px;cursor:pointer">✕</span>';
+    if(preview) preview.appendChild(img);
+  };
+  reader.readAsDataURL(file);
+}
+
+function hapusFoto(fid){
+  var input = document.getElementById(fid);
+  if(input) input.value = '';
+  var nameEl = document.getElementById(fid+'-name');
+  if(nameEl) nameEl.textContent = '';
+  var prev = document.getElementById('prev-'+fid);
+  if(prev) prev.remove();
+}
+
+function resetFoto(){
+  ['foto-1','foto-2','foto-3'].forEach(function(fid){ hapusFoto(fid); });
+  var status = document.getElementById('foto-upload-status');
+  if(status) status.textContent = '';
+}
+
+function getFolderByType(type){
+  if(type==='pm') return FOLDER_PM;
+  if(type==='complaint') return FOLDER_COMPLAINT;
+  if(type==='renovasi') return FOLDER_RENOVASI;
+  return FOLDER_PM;
+}
+
+function uploadFotoKeDrive(type, namaFile, base64Data, mimeType, callback){
+  // Upload via Apps Script doPost with type='upload_foto'
+  var payload = {
+    type: 'upload_foto',
+    folderType: type,
+    fileName: namaFile,
+    mimeType: mimeType,
+    data: base64Data
+  };
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if(res.status==='success') callback(null, res.url);
+    else callback(res.message||'Upload gagal', null);
+  })
+  .catch(function(err){ callback(err.toString(), null); });
+}
+
+function uploadSemuaFoto(type, prefix, callback){
+  var fotoIds = ['foto-1','foto-2','foto-3'];
+  var files = [];
+  fotoIds.forEach(function(fid){
+    var input = document.getElementById(fid);
+    if(input && input.files && input.files[0]) files.push({fid:fid, file:input.files[0]});
+  });
+
+  if(!files.length){ callback([]); return; }
+
+  var statusEl = document.getElementById('foto-upload-status');
+  if(statusEl) statusEl.textContent = '⏳ Mengupload '+files.length+' foto...';
+
+  var results = [];
+  var done = 0;
+
+  files.forEach(function(f, i){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var base64 = e.target.result.split(',')[1];
+      var mime   = f.file.type || 'image/jpeg';
+      var ext    = f.file.name.split('.').pop() || 'jpg';
+      var nama   = prefix+'_foto'+(i+1)+'_'+Date.now()+'.'+ext;
+
+      uploadFotoKeDrive(type, nama, base64, mime, function(err, url){
+        if(url) results.push(url);
+        else if(statusEl) statusEl.textContent += '\n⚠️ Foto '+(i+1)+' gagal: '+err;
+        done++;
+        if(done === files.length){
+          if(statusEl) statusEl.textContent = results.length ? '✅ '+results.length+' foto berhasil diupload' : '⚠️ Upload foto gagal';
+          callback(results);
+        }
+      });
+    };
+    reader.readAsDataURL(f.file);
+  });
 }
 
 
