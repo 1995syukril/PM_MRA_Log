@@ -1348,10 +1348,14 @@ function simpanInternal(){
 }
 
 function resetI(){
-  resetFotoField('i-foto','i-foto-preview');
+  // Reset foto
+  ['foto-1','foto-2','foto-3'].forEach(function(fid){ hapusFoto(fid); });
+  var status = document.getElementById('foto-upload-status');
+  if(status) status.textContent = '';
+  // Reset PIC
   resetPicField('i-tek');
+  // Reset fields
   document.getElementById('i-cat').value='';
-  document.getElementById('i-tek').value='';
   resetIFields();
   setJobType(currentJobType);
 }
@@ -1389,15 +1393,6 @@ function checkAllI(){
   const cks=document.querySelectorAll('#i-cl input[type=checkbox]');
   const all=[...cks].every(c=>c.checked);
   cks.forEach(c=>c.checked=!all);
-}
-
-function resetI(){
-  document.getElementById('i-cat').value='';
-  document.getElementById('i-eq').value='';
-  document.getElementById('i-tek').value='';
-  document.querySelectorAll('input[name="ikondisi"]').forEach(r=>r.checked=false);
-  document.getElementById('i-cl').innerHTML='<div class="empty">Pilih equipment terlebih dahulu</div>';
-  document.getElementById('i-eq-info').style.display='none';
 }
 
 // ===================== FORM VENDOR =====================
