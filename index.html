@@ -936,7 +936,7 @@ textarea{resize:vertical;min-height:65px}
       📊 LAPORAN BULANAN MAINTENANCE
     </div>
 
-    <!-- Filter bulan & tahun -->
+    <!-- Filter -->
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
       <select id="lb-bln" class="fi" style="width:130px" onchange="renderLapBulanan()">
         <option value="1">Januari</option><option value="2">Februari</option>
@@ -951,10 +951,10 @@ textarea{resize:vertical;min-height:65px}
         <option value="2026" selected>2026</option>
         <option value="2027">2027</option>
       </select>
-      <button class="btn bprim" onclick="cetakLapBulanan()" style="margin-left:auto">🖨️ CETAK / PDF</button>
+      <button class="btn bprim bsm" onclick="cetakLapBulanan()">🖨️ CETAK / PDF</button>
     </div>
 
-    <!-- Konten laporan -->
+    <!-- Content -->
     <div id="lb-content"></div>
   </div>
 </section>
@@ -972,7 +972,7 @@ const CHECKLIST_MAP = {"EQ001": ["Cek kelancaran putaran fan (tidak ada getaran 
 // GOOGLE SHEETS INTEGRATION
 // Ganti URL di bawah dengan Web App URL dari Apps Script Anda
 // ============================================================
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyjcoXfitIWxvSEbHEh7ZAaYbgKD7QSN_7i-rStZ-cTAbPjIrGWBC-J8uerlAtxPgN5/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwtJpHBfo_X0a_8Y-BiggA5KX9UeuXIcAJcmJ1GvfvIGriPJwvvDVnCwqh4B8Z94M8w/exec';
 
 async function sendToSheets(data) {
   if (!SHEETS_URL || SHEETS_URL === 'GANTI_DENGAN_URL_APPS_SCRIPT_ANDA') {
@@ -1086,6 +1086,8 @@ function showTab(id,btn,isVendor){
   if(id==='dashboard') renderDash();
   if(id==='riwayat') renderRiwayat();
   renderAgenda();
+  // Set current month in laporan
+  var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
   // Set default bulan di laporan bulanan
   var d=new Date();
   var lbBln=document.getElementById('lb-bln');
@@ -2680,6 +2682,199 @@ function uploadSemuaFoto(type, prefix, callback){
   });
 }
 
+
+
+// ===================== LAPORAN BULANAN =====================
+function renderLapBulanan(){
+  var el = document.getElementById('lb-content');
+  if(!el) return;
+
+  var bln = parseInt(document.getElementById('lb-bln').value);
+  var thn = parseInt(document.getElementById('lb-thn').value);
+  var blnNames = ['','Januari','Februari','Maret','April','Mei','Juni',
+                  'Juli','Agustus','September','Oktober','November','Desember'];
+
+  function inPeriod(tglStr){
+    if(!tglStr) return false;
+    var d = new Date(tglStr);
+    return d.getMonth()+1===bln && d.getFullYear()===thn;
+  }
+
+  // ---- PM ----
+  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inPeriod(d.tgl); });
+  var totalEq = EQUIPMENT_DATA.length;
+  var pmSelesai = pmData.length;
+  var pmByPIC = {};
+  pmData.forEach(function(d){
+    var pics = d.teknisi ? d.teknisi.split('|') : [d.teknisi||'-'];
+    pics.forEach(function(p){ p=p.trim(); pmByPIC[p]=(pmByPIC[p]||0)+1; });
+  });
+  var pmTopPIC = Object.keys(pmByPIC).sort(function(a,b){return pmByPIC[b]-pmByPIC[a];}).slice(0,3);
+
+  // ---- COMPLAINT ----
+  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inPeriod(d.tgl); });
+  var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
+  var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
+  var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
+  var cByKat = {};
+  cData.forEach(function(d){ var k=d.kategoriKeluhan||'-'; cByKat[k]=(cByKat[k]||0)+1; });
+  var cTopKat = Object.keys(cByKat).sort(function(a,b){return cByKat[b]-cByKat[a];}).slice(0,3);
+
+  // ---- RENOVASI ----
+  var rvData = LOG_I.filter(function(d){ return d.jenis==='renovasi' && inPeriod(d.tgl); });
+  var rvSelesai = rvData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
+  var rvProses  = rvData.filter(function(d){ return d.kondisi!=='Selesai'; }).length;
+
+  // ---- VENDOR ----
+  var vData = LOG_V.filter(function(d){ return inPeriod(d.tgl); });
+  var vAC   = vData.filter(function(d){ return d.kat==='AC'; }).length;
+  var vLift = vData.filter(function(d){ return d.kat==='Lift'; }).length;
+  var vSTP  = vData.filter(function(d){ return d.kat==='STP'; }).length;
+  var vNormal  = vData.filter(function(d){ return d.kondisi==='Normal'; }).length;
+  var vTemuan  = vData.filter(function(d){ return d.kondisi==='Ada Temuan'; }).length;
+  var vPerlu   = vData.filter(function(d){ return d.kondisi==='Perlu Tindak Lanjut'; }).length;
+
+  var pmPct = totalEq>0 ? Math.round(pmSelesai/totalEq*100) : 0;
+  var cPct  = cData.length>0 ? Math.round(cSelesai/cData.length*100) : 0;
+
+  function statBox(icon, label, val, sub, color){
+    return '<div style="background:var(--bg2);border:1px solid var(--border);padding:12px;text-align:center;flex:1;min-width:80px">'
+      +'<div style="font-size:18px">'+icon+'</div>'
+      +'<div style="font-family:var(--mono);font-size:20px;font-weight:700;color:'+(color||'var(--text1)')+'">'+val+'</div>'
+      +'<div style="font-family:var(--mono);font-size:9px;color:var(--text2)">'+label+'</div>'
+      +(sub?'<div style="font-family:var(--mono);font-size:9px;color:var(--accent2)">'+sub+'</div>':'')
+      +'</div>';
+  }
+
+  function sectionHead(icon, title){
+    return '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);border-bottom:2px solid var(--accent2);padding-bottom:4px;margin:16px 0 10px">'+icon+' '+title+'</div>';
+  }
+
+  function badge(txt, color){
+    return '<span style="background:'+color+';color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono);margin-right:4px">'+txt+'</span>';
+  }
+
+  var html = '<div id="lb-print-area">';
+
+  // Header
+  html += '<div style="text-align:center;padding:14px;background:var(--bg2);border:1px solid var(--border);margin-bottom:16px">'
+    +'<div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent2)">LAPORAN BULANAN MAINTENANCE</div>'
+    +'<div style="font-family:var(--mono);font-size:11px;color:var(--text2)">Menteng Regency Apartemen</div>'
+    +'<div style="font-family:var(--mono);font-size:12px;font-weight:600">Periode: '+blnNames[bln]+' '+thn+'</div>'
+    +'</div>';
+
+  // Ringkasan
+  html += sectionHead('📊','RINGKASAN');
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    +statBox('✅','PM Selesai',pmSelesai+'/'+totalEq,pmPct+'%','#27ae60')
+    +statBox('📢','Complaint',cData.length,'Selesai: '+cSelesai,'#e67e22')
+    +statBox('🏗️','Renovasi',rvData.length,'Selesai: '+rvSelesai,'#2980b9')
+    +statBox('🏢','Vendor',vData.length,'Kunjungan','#8e44ad')
+    +'</div>';
+
+  // PM Detail
+  html += sectionHead('🔧','PM RUTIN');
+  var pmPctBar = '<div style="background:var(--border);height:8px;border-radius:0;margin:6px 0">'
+    +'<div style="background:'+(pmPct>=80?'#27ae60':pmPct>=50?'#f39c12':'#e74c3c')+';height:8px;width:'+pmPct+'%"></div></div>';
+  html += '<div style="font-family:var(--mono);font-size:11px">Compliance: <strong>'+pmPct+'%</strong> ('+pmSelesai+' dari '+totalEq+' equipment)</div>';
+  html += pmPctBar;
+  if(pmTopPIC.length){
+    html += '<div style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-top:6px">Top personil: ';
+    html += pmTopPIC.map(function(p){ return '<strong>'+p+'</strong> ('+pmByPIC[p]+'x)'; }).join(', ');
+    html += '</div>';
+  }
+
+  // Complaint Detail
+  html += sectionHead('📢','COMPLAINT TENANT');
+  if(cData.length===0){
+    html += '<div style="font-family:var(--mono);font-size:11px;color:var(--text2)">Tidak ada complaint bulan ini.</div>';
+  } else {
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+      +statBox('✅','Selesai',cSelesai,'','#27ae60')
+      +statBox('🔄','Proses',cProses,'','#f39c12')
+      +statBox('⚠️','Tindak Lanjut',cTindak,'','#e74c3c')
+      +'</div>';
+    if(cTopKat.length){
+      html += '<div style="font-family:var(--mono);font-size:10px;color:var(--text2)">Kategori terbanyak: ';
+      html += cTopKat.map(function(k){ return '<strong>'+k+'</strong> ('+cByKat[k]+'x)'; }).join(', ');
+      html += '</div>';
+    }
+    // List complaint
+    html += '<div style="margin-top:10px">';
+    cData.slice(0,10).forEach(function(d){
+      var statusColor = d.kondisi==='Selesai'?'#27ae60':d.kondisi==='Proses'?'#f39c12':'#e74c3c';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px">'
+        +'<div><span style="color:var(--text2)">'+d.tgl+'</span> &middot; Unit '+d.unit+' &middot; '+d.kategoriKeluhan+'</div>'
+        +'<span style="background:'+statusColor+';color:#fff;padding:1px 6px;font-size:9px">'+d.kondisi+'</span>'
+        +'</div>';
+    });
+    if(cData.length>10) html += '<div style="font-family:var(--mono);font-size:10px;color:var(--text2);padding:4px 8px">...dan '+(cData.length-10)+' lainnya</div>';
+    html += '</div>';
+  }
+
+  // Renovasi Detail
+  html += sectionHead('🏗️','RENOVASI UNIT');
+  if(rvData.length===0){
+    html += '<div style="font-family:var(--mono);font-size:11px;color:var(--text2)">Tidak ada renovasi bulan ini.</div>';
+  } else {
+    html += '<div style="font-family:var(--mono);font-size:11px;margin-bottom:8px">'
+      +'Total: <strong>'+rvData.length+'</strong> unit &middot; Selesai: <strong>'+rvSelesai+'</strong> &middot; Berlangsung: <strong>'+rvProses+'</strong></div>';
+    html += '<div>';
+    rvData.slice(0,8).forEach(function(d){
+      var sc = d.kondisi==='Selesai'?'#27ae60':'#e67e22';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px">'
+        +'<div>Unit '+d.unit+' &middot; '+d.deskripsi+'</div>'
+        +'<span style="background:'+sc+';color:#fff;padding:1px 6px;font-size:9px">'+d.kondisi+'</span>'
+        +'</div>';
+    });
+    html += '</div>';
+  }
+
+  // Vendor Detail
+  html += sectionHead('🏢','KUNJUNGAN VENDOR');
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +statBox('🌡️','Vendor AC',vAC,'kunjungan','#2980b9')
+    +statBox('🛗','Vendor Lift',vLift+'/1','target','vLift>=1?"#27ae60":"#e74c3c"')
+    +statBox('♻️','Vendor STP',vSTP+'/2','target',vSTP>=2?'#27ae60':'#e74c3c')
+    +'</div>';
+  if(vData.length>0){
+    html += '<div style="font-family:var(--mono);font-size:10px;color:var(--text2)">Hasil: '
+      +badge('Normal: '+vNormal,'#27ae60')
+      +badge('Ada Temuan: '+vTemuan,'#f39c12')
+      +badge('Perlu Tindak Lanjut: '+vPerlu,'#e74c3c')
+      +'</div>';
+  }
+
+  // Footer
+  html += '<div style="margin-top:20px;padding:10px;background:var(--bg2);border:1px solid var(--border);font-family:var(--mono);font-size:9px;color:var(--text2);text-align:center">'
+    +'Dicetak dari MMS MRA &middot; '+new Date().toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})
+    +'</div>';
+
+  html += '</div>'; // end lb-print-area
+  el.innerHTML = html;
+}
+
+function cetakLapBulanan(){
+  var area = document.getElementById('lb-print-area');
+  if(!area){ alert('Generate laporan dulu'); return; }
+
+  var bln = document.getElementById('lb-bln');
+  var thn = document.getElementById('lb-thn');
+  var blnNames = ['','Januari','Februari','Maret','April','Mei','Juni',
+                  'Juli','Agustus','September','Oktober','November','Desember'];
+  var title = 'Laporan Bulanan - '+blnNames[parseInt(bln.value)]+' '+thn.value;
+
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>'+title+'</title>'
+    +'<style>body{font-family:Courier New,monospace;font-size:11px;color:#1a1814;background:#fff;padding:20px}'
+    +'.section{display:block!important}'
+    +'@media print{button{display:none}}'
+    +'</style></head><body>');
+  win.document.write('<button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#b5860d;color:#fff;border:none;font-family:Courier New;cursor:pointer">🖨️ PRINT / SAVE PDF</button>');
+  win.document.write(area.innerHTML);
+  win.document.write('</body></html>');
+  win.document.close();
+}
 
 // ===================== BOOT =====================
 initFilters();renderDash();
