@@ -212,6 +212,7 @@ textarea{resize:vertical;min-height:65px}
   <button onclick="showTab('lap-bulanan',this,false)">📊 Lap. Bulanan</button>
   <button onclick="showTab('sparepart',this,false)">📦 Spare Part</button>
   <button onclick="showTab('agenda',this,false)">📅 Agenda</button>
+  <button onclick="showTab('workplan',this,false)">📋 Work Plan</button>
 </nav>
 
 <main>
@@ -959,6 +960,141 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </section>
 
+
+<!-- ===================== TAB WORK PLAN ===================== -->
+<section class="section" id="tab-workplan">
+  <div class="card">
+    <div style="background:var(--accent2);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:14px">
+      📋 WORK PLAN TAHUNAN — MENTENG REGENCY
+    </div>
+
+    <!-- Form Tambah -->
+    <div id="wp-edit-banner" style="display:none;background:#b5860d;color:#fff;padding:8px 14px;margin-bottom:10px;font-family:var(--mono);font-size:11px;font-weight:600;justify-content:space-between;align-items:center">
+      <span>✏️ MODE EDIT WORK PLAN</span>
+      <button onclick="resetWP()" style="background:none;border:1px solid #fff;color:#fff;font-family:var(--mono);font-size:10px;padding:3px 8px;cursor:pointer">✕ BATAL</button>
+    </div>
+
+    <div style="background:var(--bg2);padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:10px">➕ TAMBAH PEKERJAAN / SERTIFIKASI</div>
+      <div class="form-grid">
+        <div class="fg" style="grid-column:span 2">
+          <label class="fl">NAMA PEKERJAAN <span class="req">*</span></label>
+          <input type="text" id="wp-nama" class="fi" placeholder="Contoh: Service Trafo 1 & 2, Perpanjangan SLO...">
+        </div>
+        <div class="fg">
+          <label class="fl">KATEGORI <span class="req">*</span></label>
+          <select id="wp-kat" class="fi" onchange="onWPKatChange()">
+            <option value="">— Pilih —</option>
+            <option value="Service Berkala">🔧 Service Berkala</option>
+            <option value="Renovasi / Penggantian">🏗️ Renovasi / Penggantian</option>
+            <option value="Upgrade Sistem">⚙️ Upgrade Sistem</option>
+            <option value="Sertifikasi">📜 Sertifikasi & Legalitas</option>
+            <option value="Lainnya">📌 Lainnya</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">PRIORITAS <span class="req">*</span></label>
+          <select id="wp-prio" class="fi">
+            <option value="">— Pilih —</option>
+            <option value="Tinggi">🔴 Tinggi</option>
+            <option value="Sedang">🟡 Sedang</option>
+            <option value="Rendah">🟢 Rendah</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">BULAN RENCANA <span class="req">*</span></label>
+          <select id="wp-bln" class="fi">
+            <option value="1">Januari</option><option value="2">Februari</option>
+            <option value="3">Maret</option><option value="4">April</option>
+            <option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option>
+            <option value="9">September</option><option value="10">Oktober</option>
+            <option value="11">November</option><option value="12">Desember</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">TAHUN <span class="req">*</span></label>
+          <select id="wp-thn" class="fi">
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">PIC / PENANGGUNG JAWAB</label>
+          <input type="text" id="wp-pic" class="fi" placeholder="Nama PIC atau vendor">
+        </div>
+        <div class="fg">
+          <label class="fl">ESTIMASI BIAYA (Rp)</label>
+          <input type="number" id="wp-biaya" class="fi" placeholder="0">
+        </div>
+      </div>
+
+      <!-- Field khusus sertifikasi -->
+      <div id="wp-sertif-fields" style="display:none;margin-top:8px">
+        <div class="form-grid">
+          <div class="fg">
+            <label class="fl">TANGGAL EXPIRED SERTIFIKAT</label>
+            <input type="date" id="wp-expired" class="fi">
+          </div>
+          <div class="fg">
+            <label class="fl">NOTIF WA SEBELUM EXPIRED</label>
+            <select id="wp-notif" class="fi">
+              <option value="30">H-30 (1 bulan)</option>
+              <option value="14">H-14 (2 minggu)</option>
+              <option value="7">H-7 (1 minggu)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="fg" style="margin-top:8px">
+        <label class="fl">KETERANGAN / CATATAN</label>
+        <textarea id="wp-ket" class="fi" rows="2" placeholder="Detail pekerjaan, scope, atau catatan tambahan..."></textarea>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn bprim" onclick="simpanWP()">📋 SIMPAN</button>
+        <button class="btn bout" onclick="resetWP()">✕ BERSIHKAN</button>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <select id="wp-filter-thn" class="fi" style="width:90px" onchange="renderWP()">
+        <option value="0">Semua Tahun</option>
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+        <option value="2028">2028</option>
+      </select>
+      <select id="wp-filter-kat" class="fi" style="width:160px" onchange="renderWP()">
+        <option value="">Semua Kategori</option>
+        <option value="Service Berkala">Service Berkala</option>
+        <option value="Renovasi / Penggantian">Renovasi / Penggantian</option>
+        <option value="Upgrade Sistem">Upgrade Sistem</option>
+        <option value="Sertifikasi">Sertifikasi</option>
+        <option value="Lainnya">Lainnya</option>
+      </select>
+      <select id="wp-filter-status" class="fi" style="width:140px" onchange="renderWP()">
+        <option value="">Semua Status</option>
+        <option value="Direncanakan">Direncanakan</option>
+        <option value="Disetujui">Disetujui</option>
+        <option value="Berjalan">Berjalan</option>
+        <option value="Selesai">Selesai</option>
+        <option value="Ditunda">Ditunda</option>
+      </select>
+      <button class="btn bout bsm" onclick="cetakWP()">🖨️ Cetak PDF</button>
+    </div>
+
+    <!-- Summary cards -->
+    <div id="wp-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+    <!-- List -->
+    <div id="wp-list"></div>
+  </div>
+</section>
+
 </main>
 <div id="toast"></div>
 
@@ -1088,6 +1224,7 @@ function showTab(id,btn,isVendor){
   renderAgenda();
   // Set current month in laporan
   var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
+  renderWP();
   // Set default bulan di laporan bulanan
   var d=new Date();
   var lbBln=document.getElementById('lb-bln');
@@ -2874,6 +3011,301 @@ function cetakLapBulanan(){
   win.document.write(area.innerHTML);
   win.document.write('</body></html>');
   win.document.close();
+}
+
+
+// ===================== WORK PLAN =====================
+var LOG_WP = JSON.parse(localStorage.getItem('pm_workplan_v1')||'[]');
+var wpEditIdx = -1;
+
+var BLN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni',
+                 'Juli','Agustus','September','Oktober','November','Desember'];
+
+function onWPKatChange(){
+  var kat = document.getElementById('wp-kat').value;
+  var sertifFields = document.getElementById('wp-sertif-fields');
+  if(sertifFields) sertifFields.style.display = kat==='Sertifikasi' ? 'block' : 'none';
+}
+
+function simpanWP(){
+  var nama   = document.getElementById('wp-nama').value.trim();
+  var kat    = document.getElementById('wp-kat').value;
+  var prio   = document.getElementById('wp-prio').value;
+  var bln    = document.getElementById('wp-bln').value;
+  var thn    = document.getElementById('wp-thn').value;
+  var pic    = document.getElementById('wp-pic').value.trim();
+  var biaya  = document.getElementById('wp-biaya').value;
+  var ket    = document.getElementById('wp-ket').value.trim();
+  var expired= document.getElementById('wp-expired').value;
+  var notif  = document.getElementById('wp-notif').value;
+
+  if(!nama||!kat||!prio||!bln||!thn){
+    alert('Lengkapi nama pekerjaan, kategori, prioritas, bulan, dan tahun'); return;
+  }
+
+  var record = {
+    id: wpEditIdx>=0 ? LOG_WP[wpEditIdx].id : 'WP'+Date.now(),
+    ts: new Date().toISOString(),
+    nama, kat, prio, bln: parseInt(bln), thn: parseInt(thn),
+    pic: pic||'-', biaya: biaya?parseInt(biaya):0, ket: ket||'-',
+    expired: expired||'', notif: parseInt(notif)||30,
+    status: wpEditIdx>=0 ? LOG_WP[wpEditIdx].status : 'Direncanakan'
+  };
+
+  if(wpEditIdx>=0){
+    LOG_WP[wpEditIdx] = record;
+    wpEditIdx = -1;
+    var b = document.getElementById('wp-edit-banner');
+    if(b) b.style.display='none';
+  } else {
+    LOG_WP.push(record);
+  }
+
+  localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+  showToast('Work Plan tersimpan!','vendor');
+  resetWP();
+  renderWP();
+}
+
+function resetWP(){
+  ['wp-nama','wp-kat','wp-prio','wp-pic','wp-biaya','wp-ket','wp-expired'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('wp-bln').value = new Date().getMonth()+1;
+  document.getElementById('wp-thn').value = new Date().getFullYear();
+  document.getElementById('wp-notif').value = '30';
+  wpEditIdx = -1;
+  var b = document.getElementById('wp-edit-banner');
+  if(b) b.style.display='none';
+  var sf = document.getElementById('wp-sertif-fields');
+  if(sf) sf.style.display='none';
+}
+
+function editWP(idx){
+  var d = LOG_WP[idx];
+  if(!d) return;
+  document.getElementById('wp-nama').value   = d.nama||'';
+  document.getElementById('wp-kat').value    = d.kat||'';
+  document.getElementById('wp-prio').value   = d.prio||'';
+  document.getElementById('wp-bln').value    = d.bln||1;
+  document.getElementById('wp-thn').value    = d.thn||2026;
+  document.getElementById('wp-pic').value    = d.pic!=='-'?d.pic:'';
+  document.getElementById('wp-biaya').value  = d.biaya||'';
+  document.getElementById('wp-ket').value    = d.ket!=='-'?d.ket:'';
+  document.getElementById('wp-expired').value= d.expired||'';
+  document.getElementById('wp-notif').value  = d.notif||30;
+  onWPKatChange();
+  wpEditIdx = idx;
+  var b = document.getElementById('wp-edit-banner');
+  if(b){ b.style.display='flex'; }
+  window.scrollTo(0,0);
+  showToast('Mode edit Work Plan','vendor');
+}
+
+function hapusWP(idx){
+  if(!confirm('Hapus item work plan ini?')) return;
+  LOG_WP.splice(idx,1);
+  localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+  showToast('Item dihapus','internal');
+  renderWP();
+}
+
+function ubahStatusWP(idx, status){
+  LOG_WP[idx].status = status;
+  if(status==='Selesai') LOG_WP[idx].tglSelesai = new Date().toLocaleDateString('id-ID');
+  localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+  renderWP();
+  showToast('Status diupdate: '+status,'internal');
+}
+
+function carryOverWP(){
+  var thisYear = new Date().getFullYear();
+  var carried = 0;
+  LOG_WP.forEach(function(d){
+    if(d.thn < thisYear && (d.status==='Direncanakan'||d.status==='Disetujui'||d.status==='Berjalan')){
+      var newItem = JSON.parse(JSON.stringify(d));
+      newItem.id = 'WP'+Date.now()+Math.random();
+      newItem.thn = thisYear;
+      newItem.status = 'Ditunda';
+      newItem.ket = (newItem.ket!=='-'?newItem.ket+' | ':'')+'Carry over dari '+d.thn;
+      LOG_WP.push(newItem);
+      d.status = 'Ditunda';
+      carried++;
+    }
+  });
+  localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+  if(carried>0){ showToast(carried+' item di-carry over ke '+thisYear,'vendor'); renderWP(); }
+  else alert('Tidak ada item yang perlu di-carry over.');
+}
+
+function formatRupiah(n){
+  if(!n||n===0) return '-';
+  return 'Rp '+parseInt(n).toLocaleString('id-ID');
+}
+
+function renderWP(){
+  var el = document.getElementById('wp-list');
+  var sumEl = document.getElementById('wp-summary');
+  if(!el) return;
+
+  var filterThn    = parseInt(document.getElementById('wp-filter-thn').value)||0;
+  var filterKat    = document.getElementById('wp-filter-kat').value;
+  var filterStatus = document.getElementById('wp-filter-status').value;
+
+  var list = LOG_WP.filter(function(d){
+    if(filterThn && d.thn!==filterThn) return false;
+    if(filterKat && d.kat!==filterKat) return false;
+    if(filterStatus && d.status!==filterStatus) return false;
+    return true;
+  });
+
+  // Sort by thn, bln
+  list.sort(function(a,b){ return a.thn!==b.thn ? a.thn-b.thn : a.bln-b.bln; });
+
+  // Summary
+  var allFiltered = filterThn ? LOG_WP.filter(function(d){ return d.thn===filterThn; }) : LOG_WP;
+  var statColors = {Direncanakan:'#888',Disetujui:'#2980b9',Berjalan:'#e67e22',Selesai:'#27ae60',Ditunda:'#e74c3c'};
+  var stats = {Direncanakan:0,Disetujui:0,Berjalan:0,Selesai:0,Ditunda:0};
+  allFiltered.forEach(function(d){ if(stats[d.status]!==undefined) stats[d.status]++; });
+  var totalBiaya = allFiltered.reduce(function(s,d){ return s+(d.biaya||0); },0);
+
+  if(sumEl){
+    sumEl.innerHTML = Object.keys(stats).map(function(s){
+      return '<div style="background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:center;flex:1;min-width:70px;cursor:pointer" onclick="document.getElementById(\'wp-filter-status\').value=\''+s+'\';renderWP()">'
+        +'<div style="font-family:var(--mono);font-size:16px;font-weight:700;color:'+statColors[s]+'">'+stats[s]+'</div>'
+        +'<div style="font-family:var(--mono);font-size:8px;color:var(--text2)">'+s.toUpperCase()+'</div>'
+        +'</div>';
+    }).join('')
+    +'<div style="background:var(--bg2);border:1px solid var(--border);padding:8px 12px;text-align:center;flex:1;min-width:100px">'
+    +'<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent2)">'+formatRupiah(totalBiaya)+'</div>'
+    +'<div style="font-family:var(--mono);font-size:8px;color:var(--text2)">TOTAL ESTIMASI</div>'
+    +'</div>';
+  }
+
+  if(!list.length){
+    el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text2);font-family:var(--mono);font-size:11px">Belum ada item work plan</div>'
+      +'<div style="text-align:center"><button class="btn bout bsm" onclick="carryOverWP()" style="font-size:10px">🔄 Carry Over dari Tahun Lalu</button></div>';
+    return;
+  }
+
+  var prioColor = {Tinggi:'#e74c3c',Sedang:'#f39c12',Rendah:'#27ae60'};
+  var statusColor = {Direncanakan:'#888',Disetujui:'#2980b9',Berjalan:'#e67e22',Selesai:'#27ae60',Ditunda:'#e74c3c'};
+  var katIcon = {'Service Berkala':'🔧','Renovasi / Penggantian':'🏗️','Upgrade Sistem':'⚙️','Sertifikasi':'📜','Lainnya':'📌'};
+
+  // Group by thn
+  var byThn = {};
+  list.forEach(function(d){
+    if(!byThn[d.thn]) byThn[d.thn]=[];
+    byThn[d.thn].push(d);
+  });
+
+  var html = '';
+  Object.keys(byThn).sort().forEach(function(thn){
+    html += '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);background:var(--bg2);padding:6px 10px;border-left:3px solid var(--accent2);margin-bottom:8px">📅 TAHUN '+thn+'</div>';
+    byThn[thn].forEach(function(d){
+      var origIdx = LOG_WP.indexOf(d);
+      var today = new Date(); today.setHours(0,0,0,0);
+      var expiredAlert = '';
+      if(d.expired && d.status!=='Selesai'){
+        var expDate = new Date(d.expired); expDate.setHours(0,0,0,0);
+        var diff = Math.round((expDate-today)/86400000);
+        if(diff<0) expiredAlert = '<span style="background:#e74c3c;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">EXPIRED '+Math.abs(diff)+' hari lalu</span>';
+        else if(diff<=d.notif) expiredAlert = '<span style="background:#f39c12;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">Expired H-'+diff+'</span>';
+      }
+
+      html += '<div class="hi" style="border-left:3px solid '+(prioColor[d.prio]||'#888')+';opacity:'+(d.status==='Selesai'?'0.6':'1')+'">'
+        +'<div class="hih">'
+        +'<div style="flex:1">'
+        +'<div class="hieq">'+(katIcon[d.kat]||'📌')+' '+d.nama+'</div>'
+        +'<div class="himeta">📅 '+BLN_NAMES[d.bln]+' '+d.thn
+          +(d.pic!=='-'?' &middot; 👤 '+d.pic:'')
+          +(d.biaya?' &middot; 💰 '+formatRupiah(d.biaya):'')
+        +'</div>'
+        +(d.ket!=='-'?'<div class="himeta" style="color:var(--text2)">📝 '+d.ket+'</div>':'')
+        +(d.expired?'<div class="himeta">📜 Expired: '+new Date(d.expired).toLocaleDateString('id-ID')+' '+expiredAlert+'</div>':'')
+        +(d.tglSelesai?'<div class="himeta" style="color:#27ae60">✅ Selesai: '+d.tglSelesai+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+        +'<span style="background:'+(prioColor[d.prio]||'#888')+';color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">'+d.prio+'</span>'
+        +'<span style="background:'+(statusColor[d.status]||'#888')+';color:#fff;padding:2px 8px;font-size:9px;font-family:var(--mono)">'+d.status+'</span>'
+        +'<select onchange="ubahStatusWP('+origIdx+',this.value)" style="font-family:var(--mono);font-size:9px;padding:2px 4px;border:1px solid var(--border);background:var(--bg);color:var(--text1);margin-top:2px">'
+        +['Direncanakan','Disetujui','Berjalan','Selesai','Ditunda'].map(function(s){
+          return '<option value="'+s+'"'+(d.status===s?' selected':'')+'>'+s+'</option>';
+        }).join('')
+        +'</select>'
+        +'<div style="display:flex;gap:4px;margin-top:2px">'
+        +'<button class="btn bout bsm" onclick="editWP('+origIdx+')" style="font-size:9px">✏️</button>'
+        +'<button class="btn bout bsm" onclick="hapusWP('+origIdx+')" style="font-size:9px;color:var(--danger)">🗑️</button>'
+        +'</div>'
+        +'</div>'
+        +'</div></div>';
+    });
+  });
+
+  html += '<div style="margin-top:12px;text-align:right">'
+    +'<button class="btn bout bsm" onclick="carryOverWP()" style="font-size:10px">🔄 Carry Over Item Belum Selesai</button>'
+    +'</div>';
+
+  el.innerHTML = html;
+}
+
+function cetakWP(){
+  var filterThn = parseInt(document.getElementById('wp-filter-thn').value)||0;
+  var title = 'Work Plan Tahunan'+(filterThn?' '+filterThn:'');
+  var list = filterThn ? LOG_WP.filter(function(d){return d.thn===filterThn;}) : LOG_WP;
+  list.sort(function(a,b){ return a.thn!==b.thn?a.thn-b.thn:a.bln-b.bln; });
+
+  var prioColor={Tinggi:'#e74c3c',Sedang:'#f39c12',Rendah:'#27ae60'};
+  var statusColor={Direncanakan:'#888',Disetujui:'#2980b9',Berjalan:'#e67e22',Selesai:'#27ae60',Ditunda:'#e74c3c'};
+  var totalBiaya = list.reduce(function(s,d){return s+(d.biaya||0);},0);
+
+  var rows = list.map(function(d,i){
+    return '<tr style="border-bottom:1px solid #ddd">'
+      +'<td style="padding:6px">'+( i+1)+'</td>'
+      +'<td style="padding:6px"><strong>'+d.nama+'</strong><br><small>'+d.kat+'</small></td>'
+      +'<td style="padding:6px;text-align:center">'+BLN_NAMES[d.bln]+' '+d.thn+'</td>'
+      +'<td style="padding:6px;text-align:center"><span style="background:'+prioColor[d.prio]+';color:#fff;padding:1px 6px;font-size:10px">'+d.prio+'</span></td>'
+      +'<td style="padding:6px">'+(d.pic!=='-'?d.pic:'-')+'</td>'
+      +'<td style="padding:6px;text-align:right">'+(d.biaya?formatRupiah(d.biaya):'-')+'</td>'
+      +'<td style="padding:6px;text-align:center"><span style="background:'+statusColor[d.status]+';color:#fff;padding:1px 6px;font-size:10px">'+d.status+'</span></td>'
+      +'<td style="padding:6px">'+(d.ket!=='-'?d.ket:'-')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>'+title+'</title>'
+    +'<style>body{font-family:Courier New,monospace;font-size:11px;padding:20px}'
+    +'table{width:100%;border-collapse:collapse}th{background:#1a1814;color:#fff;padding:6px;text-align:left}'
+    +'@media print{button{display:none}}</style></head><body>');
+  win.document.write('<button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#b5860d;color:#fff;border:none;cursor:pointer">🖨️ PRINT / SAVE PDF</button>');
+  win.document.write('<div style="text-align:center;margin-bottom:16px">'
+    +'<h2 style="margin:0">WORK PLAN TAHUNAN MAINTENANCE</h2>'
+    +'<p style="margin:4px 0">Menteng Regency Apartemen'+(filterThn?' &mdash; Tahun '+filterThn:'')+'</p>'
+    +'<p style="margin:4px 0;font-size:10px">Dicetak: '+new Date().toLocaleDateString('id-ID',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})+'</p>'
+    +'</div>');
+  win.document.write('<table><thead><tr>'
+    +'<th>No</th><th>Pekerjaan</th><th>Rencana</th><th>Prioritas</th>'
+    +'<th>PIC</th><th>Estimasi Biaya</th><th>Status</th><th>Keterangan</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody>'
+    +'<tfoot><tr><td colspan="5" style="padding:6px;font-weight:700">TOTAL ESTIMASI BIAYA</td>'
+    +'<td style="padding:6px;text-align:right;font-weight:700">'+formatRupiah(totalBiaya)+'</td>'
+    +'<td colspan="2"></td></tr></tfoot></table>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+// Cek sertifikasi expired untuk WA (dipanggil dari cekHarianPM jika perlu)
+function getSertifAlert(){
+  var today = new Date(); today.setHours(0,0,0,0);
+  var alerts = [];
+  LOG_WP.forEach(function(d){
+    if(d.kat==='Sertifikasi' && d.expired && d.status!=='Selesai'){
+      var exp = new Date(d.expired); exp.setHours(0,0,0,0);
+      var diff = Math.round((exp-today)/86400000);
+      if(diff<=d.notif) alerts.push({nama:d.nama, diff:diff});
+    }
+  });
+  return alerts;
 }
 
 // ===================== BOOT =====================
