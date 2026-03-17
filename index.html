@@ -1189,6 +1189,7 @@ textarea{resize:vertical;min-height:65px}
     <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">
       <span style="font-family:var(--mono);font-size:9px;color:var(--text2)">KETERANGAN:</span>
       <span style="background:#2980b9;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">P Pagi</span>
+      <span style="background:#1a6ea8;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">P1 Pagi-2jam</span>
       <span style="background:#27ae60;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">S Siang</span>
       <span style="background:#8e44ad;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">M Malam</span>
       <span style="background:#e67e22;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">S1 Sore</span>
@@ -3458,6 +3459,7 @@ var PERSONIL_LIST = [
 
 var SHIFT_CONFIG = {
   'P':  { label:'P',  warna:'#2980b9', title:'Pagi' },
+  'P1': { label:'P1', warna:'#1a6ea8', title:'Pagi -2 jam' },
   'S':  { label:'S',  warna:'#27ae60', title:'Siang' },
   'M':  { label:'M',  warna:'#8e44ad', title:'Malam' },
   'S1': { label:'S1', warna:'#e67e22', title:'Sore' },
@@ -3806,7 +3808,7 @@ function importJadwalExcel(input){
 
       // Parse shift data
       var result = {};
-      var VALID_SHIFTS = ['P','S','M','S1','PS','SM','C','-',''];
+      var VALID_SHIFTS = ['P','P1','S','M','S1','PS','SM','C','-',''];
 
       for(var i=headerRowIdx+1;i<rows.length;i++){
         var row = rows[i];
