@@ -185,80 +185,64 @@ textarea{resize:vertical;min-height:65px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// Login & core functions (loaded in head for early availability)
+var MMS_USERS = {
+  'syukril':  { pass: 'mra2026',  nama: 'Syukril',  role: 'supervisor' },
+  'solaeman': { pass: 'mra2026',  nama: 'Solaeman', role: 'foreman' },
+  'admin':    { pass: 'admin123', nama: 'Admin',     role: 'admin' }
+};
 
-// Proxy functions - called from HTML before main script loads
-// They queue calls until DOMContentLoaded
-var _pendingCalls = [];
-var _appReady = false;
-
-function _proxy(fn, args) {
-  if(_appReady && window[fn]) {
-    window[fn].apply(window, args||[]);
-  } else {
-    _pendingCalls.push({fn:fn, args:args||[]});
+function doLogin(){
+  var user  = (document.getElementById('login-user').value||'').trim().toLowerCase();
+  var pass  = document.getElementById('login-pass').value||'';
+  var errEl = document.getElementById('login-error');
+  if(!MMS_USERS[user] || MMS_USERS[user].pass !== pass){
+    errEl.textContent = 'Username atau password salah';
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    return;
   }
+  sessionStorage.setItem('mms_user', JSON.stringify({user:user, nama:MMS_USERS[user].nama, role:MMS_USERS[user].role}));
+  document.getElementById('login-overlay').style.display = 'none';
+  var hNama = document.getElementById('header-user');
+  if(hNama) hNama.textContent = MMS_USERS[user].nama;
+  document.addEventListener('app-ready', function(){ 
+    if(typeof initSync === 'function') initSync(); 
+  });
 }
 
-function renderAgenda(){ _proxy('renderAgenda', []); }
-function renderJadwal(){ _proxy('renderJadwal', []); }
-function renderWP(){ _proxy('renderWP', []); }
-function renderLapBulanan(){ _proxy('renderLapBulanan', []); }
-function renderRiwayat(){ _proxy('renderRiwayat', []); }
-function renderDash(){ _proxy('renderDash', []); }
-function filterAgenda(m){ _proxy('filterAgenda', [m]); }
-function simpanAgenda(){ _proxy('simpanAgenda', []); }
-function simpanWP(){ _proxy('simpanWP', []); }
-function resetWP(){ _proxy('resetWP', []); }
-function editWP(i){ _proxy('editWP', [i]); }
-function hapusWP(i){ _proxy('hapusWP', [i]); }
-function ubahStatusWP(i,s){ _proxy('ubahStatusWP', [i,s]); }
-function cetakWP(){ _proxy('cetakWP', []); }
-function carryOverWP(){ _proxy('carryOverWP', []); }
-function showJadwalInput(){ _proxy('showJadwalInput', []); }
-function hideJadwalInput(){ _proxy('hideJadwalInput', []); }
-function simpanJadwal(){ _proxy('simpanJadwal', []); }
-function cetakJadwal(){ _proxy('cetakJadwal', []); }
-function generateBulanDepan(){ _proxy('generateBulanDepan', []); }
-function importJadwalExcel(el){ _proxy('importJadwalExcel', [el]); }
-function importJadwalFoto(el){ _proxy('importJadwalFoto', [el]); }
-function onWPKatChange(){ _proxy('onWPKatChange', []); }
-function cetakLapBulanan(){ _proxy('cetakLapBulanan', []); }
-function togglePicDropdown(id){ _proxy('togglePicDropdown', [id]); }
-function togglePic(el,id){ _proxy('togglePic', [el,id]); }
-function simpanInternal(){ _proxy('simpanInternal', []); }
-function simpanVendor(){ _proxy('simpanVendor', []); }
-function resetI(){ _proxy('resetI', []); }
-function resetV(){ _proxy('resetV', []); }
-function batalEditVendor(){ _proxy('batalEditVendor', []); }
-function batalEditAgenda(){ _proxy('batalEditAgenda', []); }
-
-
-function showTab(id,btn,isVendor){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b=>{b.classList.remove('active');b.classList.remove('vactive');});
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add(isVendor?'vactive':'active');
-  if(id==='dashboard') renderDash();
-  if(id==='riwayat') renderRiwayat();
-  renderAgenda();
-  // Set current month in laporan
-  var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
-  renderWP();
-  // Set current month jadwal
-  var jdBln=document.getElementById('jd-bln'); if(jdBln) jdBln.value=new Date().getMonth()+1; renderJadwal();
-  // Set default bulan di laporan bulanan
-  var d=new Date();
-  var lbBln=document.getElementById('lb-bln');
-  var lbThn=document.getElementById('lb-thn');
-  if(lbBln) lbBln.value=d.getMonth()+1;
-  if(lbThn) lbThn.value=d.getFullYear();
-  renderLapBulanan();
-  if(id==='lap-internal') renderLapI();
-  if(id==='lap-vendor') renderLapV();
+function checkSession(){
+  var sess = sessionStorage.getItem('mms_user');
+  if(sess){
+    try{
+      var u = JSON.parse(sess);
+      var ov = document.getElementById('login-overlay');
+      if(ov) ov.style.display = 'none';
+      var hNama = document.getElementById('header-user');
+      if(hNama) hNama.textContent = u.nama;
+      return true;
+    }catch(e){}
+  }
+  return false;
 }
 
-// ===================== INIT FILTERS =====================
+function doLogout(){
+  sessionStorage.removeItem('mms_user');
+  location.reload();
+}
+
+function showTab(id, btn, isVendor){
+  document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('nav button').forEach(function(b){
+    b.classList.remove('active');
+    b.classList.remove('vactive');
+  });
+  var sec = document.getElementById('tab-'+id);
+  if(sec) sec.classList.add('active');
+  if(btn) btn.classList.add(isVendor ? 'vactive' : 'active');
+}
 </script>
+<!-- MMS-MRA-BUILD-20260317032714 -->
 </head>
 <body>
 <header>
@@ -8282,4 +8266,3 @@ function generateBulanDepan(){
   renderJadwal();
   showToast('Jadwal ' + BLN_NAMES[nextBln] + ' ' + nextThn + ' berhasil digenerate! Cek & revisi jika perlu.', 'vendor');
 }
-
