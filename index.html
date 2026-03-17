@@ -3948,578 +3948,109 @@ function importJadwalFoto(input){
 }
 
 // ===================== GENERATE BULAN DEPAN =====================
+var SUPERVISOR_LIST = ['Syukril', 'Solaeman'];
+var TIM_LAPANGAN = ['Ilham', 'Joko', 'Nanang', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Aris', 'Sumartono'];
+var POLA_ROTASI = ['P', 'P', 'S1', 'S', 'M', 'M', '-', '-'];
+
 function generateBulanDepan(){
   var bln = parseInt(document.getElementById('jd-bln').value);
   var thn = parseInt(document.getElementById('jd-thn').value);
   var key = getJadwalKey();
   var currentData = LOG_JADWAL[key];
 
-  if(!currentData || Object.keys(currentData).length===0){
-    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.');
-    return;
+  if(!currentData || Object.keys(currentData).length === 0){
+    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.'); return;
   }
 
-  // Next month
-  var nextBln = bln===12 ? 1 : bln+1;
-  var nextThn = bln===12 ? thn+1 : thn;
+  var nextBln = bln === 12 ? 1 : bln + 1;
+  var nextThn = bln === 12 ? thn + 1 : thn;
   var nextDays = getDaysInMonth(nextThn, nextBln);
-  var nextKey = nextThn+'-'+nextBln;
-
-  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length>0){
-    if(!confirm('Jadwal '+nextBln+'/'+nextThn+' sudah ada. Timpa dengan generate baru?')) return;
-  }
-
-  // Rotation: P→S→M→P, S→M→P→S, M→P→S→M
-  var ROTATE = {'P':'S','S':'M','M':'P','S1':'S1','PS':'PS','SM':'SM','C':'','−':'','-':'',''  :''};
-
-  var newData = {};
-  PERSONIL_LIST.forEach(function(nama){
-    var oldShifts = currentData[nama]||[];
-    // Find dominant shift for this person to determine rotation
-    var counts = {P:0,S:0,M:0};
-    oldShifts.forEach(function(s){ if(counts[s]!==undefined) counts[s]++; });
-    var dominant = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
-
-    var newShifts = [];
-    for(var d=0;d<nextDays;d++){
-      var oldIdx = d < oldShifts.length ? d : d % oldShifts.length;
-      var oldS = oldShifts[oldIdx]||'';
-      var newS = ROTATE[oldS]!==undefined ? ROTATE[oldS] : oldS;
-      newShifts.push(newS);
-    }
-    newData[nama] = newShifts;
-  });
-
-  LOG_JADWAL[nextKey] = newData;
-  localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
-
-  // Switch view to next month
-  document.getElementById('jd-bln').value = nextBln;
-  document.getElementById('jd-thn').value = nextThn;
-  renderJadwal();
-
-  var BLN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  showToast('Jadwal '+BLN[nextBln]+' '+nextThn+' berhasil digenerate! Cek & revisi sesuai kebutuhan.','vendor');
-}
-
-
-// ===================== JADWAL IMPORT & GENERATE =====================
-
-function showJdLoading(txt){
-  var ov = document.getElementById('jd-loading');
-  var tx = document.getElementById('jd-loading-text');
-  if(ov){ ov.style.display='block'; }
-  if(tx){ tx.textContent = txt||'Memproses...'; }
-  var grid = document.getElementById('jd-grid');
-  if(grid) grid.style.display='none';
-}
-
-function hideJdLoading(){
-  var ov = document.getElementById('jd-loading');
-  if(ov) ov.style.display='none';
-  var grid = document.getElementById('jd-grid');
-  if(grid) grid.style.display='block';
-}
-
-// ===================== IMPORT EXCEL =====================
-function importJadwalExcel(input){
-  var file = input.files[0];
-  if(!file){ return; }
-  showJdLoading('Membaca file Excel...');
-
-  var reader = new FileReader();
-  reader.onload = function(e){
-    try{
-      var data = new Uint8Array(e.target.result);
-      var wb = XLSX.read(data, {type:'array'});
-      var ws = wb.Sheets[wb.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-
-      // Find header row (row with tanggal numbers 1,2,3...)
-      var headerRowIdx = -1;
-      var firstDayCol = -1;
-      for(var i=0;i<rows.length;i++){
-        for(var j=0;j<rows[i].length;j++){
-          if(rows[i][j]==1 && rows[i][j+1]==2 && rows[i][j+2]==3){
-            headerRowIdx = i;
-            firstDayCol = j;
-            break;
-          }
-        }
-        if(headerRowIdx>=0) break;
-      }
-
-      if(headerRowIdx===-1){
-        hideJdLoading();
-        alert('Format Excel tidak dikenali. Pastikan ada baris dengan angka 1, 2, 3... sebagai header tanggal.');
-        input.value='';
-        return;
-      }
-
-      // Get days count from header
-      var days = 0;
-      for(var j=firstDayCol;j<rows[headerRowIdx].length;j++){
-        var v = rows[headerRowIdx][j];
-        if(typeof v==='number' && v>=1 && v<=31) days = v;
-        else if(days>0) break;
-      }
-
-      // Find name column (usually col 1 or 2)
-      var nameCol = 1;
-      for(var j=0;j<firstDayCol;j++){
-        var found = PERSONIL_LIST.some(function(p){
-          return rows[headerRowIdx+1] && rows[headerRowIdx+1][j] &&
-                 rows[headerRowIdx+1][j].toString().toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
-        });
-        if(found){ nameCol=j; break; }
-      }
-
-      // Parse shift data
-      var result = {};
-      var VALID_SHIFTS = ['P','S','M','S1','PS','SM','C','-',''];
-
-      for(var i=headerRowIdx+1;i<rows.length;i++){
-        var row = rows[i];
-        var rawName = (row[nameCol]||'').toString().trim();
-        if(!rawName) continue;
-
-        // Match to PERSONIL_LIST
-        var matched = PERSONIL_LIST.find(function(p){
-          return rawName.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0 ||
-                 p.toLowerCase().indexOf(rawName.toLowerCase())>=0;
-        });
-        if(!matched) continue;
-
-        var shifts = [];
-        for(var d=0;d<days;d++){
-          var cell = (row[firstDayCol+d]||'').toString().trim().toUpperCase();
-          if(VALID_SHIFTS.indexOf(cell)>=0) shifts.push(cell);
-          else shifts.push('');
-        }
-        result[matched] = shifts;
-      }
-
-      if(Object.keys(result).length===0){
-        hideJdLoading();
-        alert('Tidak ada data personil yang terbaca. Cek format Excel.');
-        input.value='';
-        return;
-      }
-
-      // Save to current period
-      var key = getJadwalKey();
-      LOG_JADWAL[key] = result;
-      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
-      hideJdLoading();
-      input.value='';
-      renderJadwal();
-      showToast('Jadwal berhasil diimport dari Excel! ('+Object.keys(result).length+' personil)','vendor');
-
-    } catch(err){
-      hideJdLoading();
-      input.value='';
-      alert('Gagal baca Excel: '+err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// ===================== IMPORT FOTO (AI) =====================
-function importJadwalFoto(input){
-  var file = input.files[0];
-  if(!file){ return; }
-
-  var bln = parseInt(document.getElementById('jd-bln').value);
-  var thn = parseInt(document.getElementById('jd-thn').value);
+  var nextKey = nextThn + '-' + nextBln;
   var BLN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni',
                    'Juli','Agustus','September','Oktober','November','Desember'];
 
-  showJdLoading('Menganalisa foto jadwal dengan AI... (mungkin 15-30 detik)');
-
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var base64 = e.target.result.split(',')[1];
-    var mediaType = file.type||'image/jpeg';
-
-    var prompt = 'Ini adalah foto jadwal kerja maintenance bulan '+BLN_NAMES[bln]+' '+thn+'.\n'
-      +'Baca semua data shift dari tabel tersebut.\n'
-      +'Nama personil yang mungkin ada: '+PERSONIL_LIST.join(', ')+'.\n\n'
-      +'Kode shift: P=Pagi, S=Siang, M=Malam, S1=Sore, PS=Pagi+Siang(lembur), SM=Siang+Malam(lembur), C=Cuti, -=Libur, (kosong)=tidak ada data.\n\n'
-      +'Kembalikan HANYA JSON valid tanpa penjelasan apapun, format:\n'
-      +'{\n'
-      +'  "Syukril": ["P","S","M",...],\n'
-      +'  "Solaeman": ["P","","-",...]\n'
-      +'}\n\n'
-      +'Setiap array harus berisi tepat '+getDaysInMonth(thn,bln)+' elemen sesuai jumlah hari di bulan tersebut.\n'
-      +'Jika sel kosong atau tidak terbaca, gunakan string kosong "".\n'
-      +'Hanya sertakan nama yang ada di foto.';
-
-    fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type:'image', source:{ type:'base64', media_type:mediaType, data:base64 } },
-            { type:'text', text:prompt }
-          ]
-        }]
-      })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      var text = data.content && data.content[0] ? data.content[0].text : '';
-      // Clean JSON
-      text = text.replace(/```json/g,'').replace(/```/g,'').trim();
-      var result = JSON.parse(text);
-
-      // Validate & normalize
-      var days = getDaysInMonth(thn, bln);
-      var VALID = ['P','S','M','S1','PS','SM','C','-',''];
-      var normalized = {};
-      var count = 0;
-
-      Object.keys(result).forEach(function(nama){
-        var matched = PERSONIL_LIST.find(function(p){
-          return p.toLowerCase().indexOf(nama.toLowerCase().split(' ')[0])>=0 ||
-                 nama.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
-        })||nama;
-        var shifts = result[nama];
-        while(shifts.length < days) shifts.push('');
-        shifts = shifts.slice(0,days).map(function(s){
-          s = s.toString().trim().toUpperCase();
-          return VALID.indexOf(s)>=0 ? s : '';
-        });
-        normalized[matched] = shifts;
-        count++;
-      });
-
-      var key = getJadwalKey();
-      LOG_JADWAL[key] = normalized;
-      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
-      hideJdLoading();
-      input.value='';
-      renderJadwal();
-      showToast('Jadwal berhasil dibaca dari foto! ('+count+' personil)','vendor');
-    })
-    .catch(function(err){
-      hideJdLoading();
-      input.value='';
-      alert('Gagal analisa foto: '+err.message+'\nCoba lagi atau gunakan input manual.');
-    });
-  };
-  reader.readAsDataURL(file);
-}
-
-// ===================== GENERATE BULAN DEPAN =====================
-function generateBulanDepan(){
-  var bln = parseInt(document.getElementById('jd-bln').value);
-  var thn = parseInt(document.getElementById('jd-thn').value);
-  var key = getJadwalKey();
-  var currentData = LOG_JADWAL[key];
-
-  if(!currentData || Object.keys(currentData).length===0){
-    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.');
-    return;
+  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length > 0){
+    if(!confirm('Jadwal ' + BLN_NAMES[nextBln] + ' ' + nextThn + ' sudah ada. Timpa?')) return;
   }
-
-  // Next month
-  var nextBln = bln===12 ? 1 : bln+1;
-  var nextThn = bln===12 ? thn+1 : thn;
-  var nextDays = getDaysInMonth(nextThn, nextBln);
-  var nextKey = nextThn+'-'+nextBln;
-
-  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length>0){
-    if(!confirm('Jadwal '+nextBln+'/'+nextThn+' sudah ada. Timpa dengan generate baru?')) return;
-  }
-
-  // Rotation: P→S→M→P, S→M→P→S, M→P→S→M
-  var ROTATE = {'P':'S','S':'M','M':'P','S1':'S1','PS':'PS','SM':'SM','C':'','−':'','-':'',''  :''};
 
   var newData = {};
-  PERSONIL_LIST.forEach(function(nama){
-    var oldShifts = currentData[nama]||[];
-    // Find dominant shift for this person to determine rotation
-    var counts = {P:0,S:0,M:0};
-    oldShifts.forEach(function(s){ if(counts[s]!==undefined) counts[s]++; });
-    var dominant = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
 
-    var newShifts = [];
-    for(var d=0;d<nextDays;d++){
-      var oldIdx = d < oldShifts.length ? d : d % oldShifts.length;
-      var oldS = oldShifts[oldIdx]||'';
-      var newS = ROTATE[oldS]!==undefined ? ROTATE[oldS] : oldS;
-      newShifts.push(newS);
+  // === SYUKRIL & SOLAEMAN ===
+  SUPERVISOR_LIST.forEach(function(nama){
+    var shifts = [];
+    for(var d = 1; d <= nextDays; d++){
+      var dayOfWeek = new Date(nextThn, nextBln - 1, d).getDay();
+      var libur = isLiburNasional(nextThn, nextBln, d);
+      if(libur || dayOfWeek === 0){
+        shifts.push('-'); // Minggu atau libur nasional
+      } else if(dayOfWeek === 6){
+        shifts.push('S1'); // Sabtu
+      } else {
+        shifts.push('P'); // Senin-Jumat
+      }
     }
-    newData[nama] = newShifts;
+    newData[nama] = shifts;
+  });
+
+  // === TIM LAPANGAN - baca offset dari bulan ini ===
+  TIM_LAPANGAN.forEach(function(nama){
+    var oldShifts = currentData[nama] || [];
+    var oldDays = oldShifts.length;
+
+    // Cari shift terakhir yang valid untuk tentukan posisi di pola
+    var lastValidShift = '';
+    var lastValidIdx = -1;
+    for(var i = oldDays - 1; i >= 0; i--){
+      var s = oldShifts[i];
+      if(s && s !== '' && POLA_ROTASI.indexOf(s) >= 0){
+        lastValidShift = s; lastValidIdx = i; break;
+      }
+    }
+
+    // Hitung posisi pola di akhir bulan ini
+    // Cari urutan pola mulai dari awal bulan
+    var polaStart = 0;
+    // Cari pola start dengan mencocokkan beberapa shift pertama
+    for(var offset = 0; offset < 8; offset++){
+      var match = true;
+      var checkCount = 0;
+      for(var d = 0; d < Math.min(oldDays, 16); d++){
+        var s = oldShifts[d];
+        if(!s || s === '') continue;
+        var expected = POLA_ROTASI[(offset + checkCount) % 8];
+        if(s !== expected){ match = false; break; }
+        checkCount++;
+        if(checkCount >= 8) break;
+      }
+      if(match){ polaStart = offset; break; }
+    }
+
+    // Hitung posisi setelah akhir bulan ini
+    var validCount = oldShifts.filter(function(s){ return s && s !== ''; }).length;
+    var nextPolaOffset = (polaStart + validCount) % 8;
+
+    // Generate bulan depan
+    var shifts = [];
+    var polaIdx = nextPolaOffset;
+    for(var d = 1; d <= nextDays; d++){
+      var libur = isLiburNasional(nextThn, nextBln, d);
+      if(libur){
+        shifts.push('-');
+        // Libur nasional tidak geser pola
+      } else {
+        shifts.push(POLA_ROTASI[polaIdx % 8]);
+        polaIdx++;
+      }
+    }
+    newData[nama] = shifts;
   });
 
   LOG_JADWAL[nextKey] = newData;
   localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
 
-  // Switch view to next month
+  // Switch view ke bulan depan
   document.getElementById('jd-bln').value = nextBln;
   document.getElementById('jd-thn').value = nextThn;
   renderJadwal();
-
-  var BLN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  showToast('Jadwal '+BLN[nextBln]+' '+nextThn+' berhasil digenerate! Cek & revisi sesuai kebutuhan.','vendor');
+  showToast('Jadwal ' + BLN_NAMES[nextBln] + ' ' + nextThn + ' berhasil digenerate! Cek & revisi jika perlu.', 'vendor');
 }
-
-
-// ===================== SYNC FROM SHEETS =====================
-
-var syncInProgress = false;
-
-function loadFromSheets(){
-  if(!SHEETS_URL || SHEETS_URL.indexOf('GANTI') >= 0) return;
-  if(syncInProgress) return;
-  syncInProgress = true;
-
-  updateSheetsStatus(null); // loading state
-  var statusEl = document.getElementById('sheets-status');
-  if(statusEl) statusEl.textContent = 'Sheets: Memuat...';
-
-  fetch(SHEETS_URL + '?action=load')
-    .then(function(r){ return r.json(); })
-    .then(function(resp){
-      syncInProgress = false;
-      if(resp.status !== 'ok' || !resp.data){
-        updateSheetsStatus(false);
-        return;
-      }
-
-      var d = resp.data;
-
-      // ---- PM & Complaint & Renovasi → LOG_I ----
-      var logI = [];
-      if(d.pm && d.pm.length){
-        d.pm.forEach(function(row){
-          logI.push({
-            ts: row['Timestamp']||'', jenis:'pm',
-            tgl: row['Tanggal']||'', jam: row['Jam']||'',
-            teknisi: row['Personil']||'', id: row['ID Equipment']||'',
-            nama: row['Nama Equipment']||'', kategori: row['Kategori']||'',
-            lokasi: row['Lokasi']||'', frekuensi: row['Frekuensi']||'',
-            kondisi: row['Kondisi']||'',
-            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
-            catatan: row['Catatan']||''
-          });
-        });
-      }
-      if(d.complaint && d.complaint.length){
-        d.complaint.forEach(function(row){
-          logI.push({
-            ts: row['Timestamp']||'', jenis:'complaint',
-            tgl: row['Tanggal']||'', jam: row['Jam']||'',
-            teknisi: row['Personil']||'', unit: row['Nomor Unit']||'',
-            kategoriKeluhan: row['Kategori Keluhan']||'',
-            deskripsi: row['Deskripsi']||'', kondisi: row['Status']||'',
-            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
-            catatan: row['Catatan']||''
-          });
-        });
-      }
-      if(d.renovasi && d.renovasi.length){
-        d.renovasi.forEach(function(row){
-          logI.push({
-            ts: row['Timestamp']||'', jenis:'renovasi',
-            tgl: row['Tanggal']||'', jam: row['Jam']||'',
-            teknisi: row['Personil']||'', unit: row['Nomor Unit']||'',
-            picUnit: row['PIC / Pemilik']||'',
-            deskripsi: row['Jenis Pekerjaan']||'',
-            kondisi: row['Status']||'', targetSelesai: row['Target Selesai']||'',
-            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
-            catatan: row['Catatan']||''
-          });
-        });
-      }
-      if(logI.length > 0){
-        LOG_I = logI;
-        localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
-      }
-
-      // ---- Vendor → LOG_V ----
-      if(d.vendor && d.vendor.length){
-        LOG_V = d.vendor.map(function(row){
-          return {
-            ts: row['Timestamp']||'', jenis:'vendor',
-            tgl: row['Tanggal']||'', jam: row['Jam']||'',
-            kat: row['Kategori Vendor']||'',
-            perusahaan: row['Perusahaan Vendor']||'',
-            teknisiVendor: row['Teknisi Vendor']||'',
-            verifikasi: row['Diverifikasi Oleh']||'',
-            kondisi: row['Kondisi']||'',
-            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
-            catatan: row['Catatan']||''
-          };
-        });
-        localStorage.setItem('pm_vendor_v1', JSON.stringify(LOG_V));
-      }
-
-      // ---- SP Master ----
-      if(d.sp_master && d.sp_master.length){
-        var spItems = d.sp_master.map(function(row){
-          return {
-            id: row['ID Item']||'', nama: row['Nama Item']||'',
-            kategori: row['Kategori']||'',
-            stok: parseInt(row['Stok Terkini'])||0,
-            satuan: row['Satuan']||'pcs',
-            min: parseInt(row['Stok Minimum'])||3,
-            lokasi: row['Lokasi Simpan']||'-'
-          };
-        });
-        if(spItems.length > 0){
-          SP_ITEMS = spItems;
-          localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
-        }
-      }
-
-      // ---- SP Log ----
-      if(d.sp_pakai && d.sp_pakai.length){
-        SP_LOG = d.sp_pakai.map(function(row){
-          return {
-            ts: row['Timestamp']||'', type:'pakai',
-            tgl: row['Tanggal']||'', nama: row['Nama Item']||'',
-            kategori: row['Kategori']||'',
-            jumlah: parseInt(row['Jumlah Pakai'])||0,
-            satuan: row['Satuan']||'',
-            stokSisa: parseInt(row['Stok Sisa'])||0,
-            untuk: row['Dipakai Untuk']||'',
-            teknisi: row['Personil']||''
-          };
-        });
-        localStorage.setItem('sp_log_v1', JSON.stringify(SP_LOG));
-      }
-
-      // ---- Agenda ----
-      if(d.agenda && d.agenda.length){
-        LOG_AG = d.agenda.map(function(row){
-          return {
-            id: row['ID']||'', ts: row['Timestamp']||'',
-            tgl: row['Tanggal']||'', prio: row['Prioritas']||'',
-            pic: row['PIC']||'', lokasi: row['Lokasi']||'-',
-            desc: row['Keterangan']||'', status: row['Status']||'Pending',
-            tglSelesai: row['Tgl Selesai']||''
-          };
-        });
-        localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
-      }
-
-      // ---- Work Plan ----
-      if(d.workplan && d.workplan.length){
-        LOG_WP = d.workplan.map(function(row){
-          return {
-            id: row['ID']||'', ts: row['Timestamp']||'',
-            nama: row['Nama Pekerjaan']||'', kat: row['Kategori']||'',
-            prio: row['Prioritas']||'',
-            bln: parseInt(row['Bulan'])||1,
-            thn: parseInt(row['Tahun'])||2026,
-            pic: row['PIC']||'-',
-            biaya: parseInt(row['Estimasi Biaya'])||0,
-            status: row['Status']||'Direncanakan',
-            expired: row['Expired']!=='-'?row['Expired']:'',
-            notif: parseInt(row['Notif Hari'])||30,
-            ket: row['Keterangan']||'-'
-          };
-        });
-        localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
-      }
-
-      updateSheetsStatus(true);
-
-      // Re-render semua
-      if(typeof renderDash==='function') renderDash();
-      if(typeof renderRiwayat==='function') renderRiwayat();
-      if(typeof renderAgenda==='function') renderAgenda();
-      if(typeof renderWP==='function') renderWP();
-      if(typeof renderJadwal==='function') renderJadwal();
-      if(typeof renderLapBulanan==='function') renderLapBulanan();
-      if(typeof renderSpSummary==='function') renderSpSummary();
-
-      console.log('Data berhasil disync dari Sheets');
-    })
-    .catch(function(err){
-      syncInProgress = false;
-      updateSheetsStatus(false);
-      console.warn('Sync dari Sheets gagal:', err.message);
-    });
-}
-
-// Auto sync saat pertama buka
-function initSync(){
-  loadFromSheets();
-  // Auto sync setiap 5 menit
-  setInterval(loadFromSheets, 5 * 60 * 1000);
-}
-
-
-// ===================== LOGIN =====================
-var MMS_USERS = {
-  'syukril':   { pass: 'mra2026',  nama: 'Syukril',  role: 'supervisor' },
-  'solaeman':  { pass: 'mra2026',  nama: 'Solaeman', role: 'foreman' },
-  'admin':     { pass: 'admin123', nama: 'Admin',     role: 'admin' }
-};
-
-function doLogin(){
-  var user = (document.getElementById('login-user').value||'').trim().toLowerCase();
-  var pass = document.getElementById('login-pass').value||'';
-  var errEl = document.getElementById('login-error');
-
-  if(!MMS_USERS[user] || MMS_USERS[user].pass !== pass){
-    errEl.textContent = '❌ Username atau password salah';
-    errEl.style.display = 'block';
-    document.getElementById('login-pass').value = '';
-    return;
-  }
-
-  // Save session
-  sessionStorage.setItem('mms_user', JSON.stringify({ user, nama: MMS_USERS[user].nama, role: MMS_USERS[user].role }));
-  document.getElementById('login-overlay').style.display = 'none';
-
-  // Update header nama
-  var hNama = document.getElementById('header-user');
-  if(hNama) hNama.textContent = '👤 ' + MMS_USERS[user].nama;
-
-  // Start sync
-  setTimeout(initSync, 500);
-}
-
-function checkSession(){
-  var sess = sessionStorage.getItem('mms_user');
-  if(sess){
-    try {
-      var u = JSON.parse(sess);
-      document.getElementById('login-overlay').style.display = 'none';
-      var hNama = document.getElementById('header-user');
-      if(hNama) hNama.textContent = '👤 ' + u.nama;
-      return true;
-    } catch(e){}
-  }
-  return false;
-}
-
-function doLogout(){
-  sessionStorage.removeItem('mms_user');
-  location.reload();
-}
-
-// ===================== BOOT =====================
-if(!checkSession()){ /* wait for login */ }
-initFilters();renderDash();
-renderSpSummary();
-initFormI();
-initFormV();
-renderRiwayat();
-initLapI();renderLapI();
-initLapV();renderLapV();
-// Init spare part month filter
-const spNow = new Date();
-document.getElementById('sp-f-log-bln').value = spNow.getFullYear()+'-'+String(spNow.getMonth()+1).padStart(2,'0');
-// Sync dari Sheets dipanggil setelah login
-</script>
-</body>
-</html>
