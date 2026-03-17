@@ -4121,10 +4121,10 @@ function generateBulanDepan(){
 }
 
 // Mark app ready & flush pending calls
-_appReady = true;
+window._appReady = true;
 document.dispatchEvent(new Event("app-ready"));
-_pendingCalls.forEach(function(c){ if(window[c.fn]) window[c.fn].apply(window, c.args); });
-_pendingCalls = [];
+window._pendingCalls.forEach(function(c){ if(window[c.fn]) window[c.fn].apply(window, c.args); });
+window._pendingCalls = [];
 checkSession();
 });
 </script>E html>
