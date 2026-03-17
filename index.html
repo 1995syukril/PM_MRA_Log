@@ -228,6 +228,32 @@ function doLogout(){
   sessionStorage.removeItem('mms_user');
   location.reload();
 }
+
+function showTab(id,btn,isVendor){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>{b.classList.remove('active');b.classList.remove('vactive');});
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add(isVendor?'vactive':'active');
+  if(id==='dashboard') renderDash();
+  if(id==='riwayat') renderRiwayat();
+  renderAgenda();
+  // Set current month in laporan
+  var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
+  renderWP();
+  // Set current month jadwal
+  var jdBln=document.getElementById('jd-bln'); if(jdBln) jdBln.value=new Date().getMonth()+1; renderJadwal();
+  // Set default bulan di laporan bulanan
+  var d=new Date();
+  var lbBln=document.getElementById('lb-bln');
+  var lbThn=document.getElementById('lb-thn');
+  if(lbBln) lbBln.value=d.getMonth()+1;
+  if(lbThn) lbThn.value=d.getFullYear();
+  renderLapBulanan();
+  if(id==='lap-internal') renderLapI();
+  if(id==='lap-vendor') renderLapV();
+}
+
+// ===================== INIT FILTERS =====================
 </script>
 </head>
 <body>
