@@ -3491,6 +3491,7 @@ function renderJadwal(){
 }
 
 function _renderJadwalGrid(){
+  var el = document.getElementById('jd-grid');
   if(!el) return;
   var key = getJadwalKey();
   var bln = parseInt(document.getElementById('jd-bln').value);
@@ -3883,25 +3884,28 @@ function importJadwalFoto(input){
       +'Jika sel kosong atau tidak terbaca, gunakan string kosong "".\n'
       +'Hanya sertakan nama yang ada di foto.';
 
-    fetch('https://api.anthropic.com/v1/messages', {
+    // Kirim ke Apps Script sebagai proxy ke Anthropic API
+    var formData = {
+      type: 'scan_jadwal',
+      imageBase64: base64,
+      mediaType: mediaType,
+      bulan: bln,
+      tahun: thn,
+      personilList: PERSONIL_LIST.join(','),
+      days: getDaysInMonth(thn, bln)
+    };
+
+    fetch(SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type:'image', source:{ type:'base64', media_type:mediaType, data:base64 } },
-            { type:'text', text:prompt }
-          ]
-        }]
-      })
+      body: JSON.stringify(formData)
     })
     .then(function(r){ return r.json(); })
     .then(function(data){
-      var text = data.content && data.content[0] ? data.content[0].text : '';
-      // Clean JSON
+      if(data.status !== 'success' || !data.result){
+        throw new Error(data.message || 'Gagal analisa foto');
+      }
+      var text = data.result;
       text = text.replace(/```json/g,'').replace(/```/g,'').trim();
       var result = JSON.parse(text);
 
