@@ -184,6 +184,51 @@ textarea{resize:vertical;min-height:65px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ===================== LOGIN =====================
+var MMS_USERS = {
+  'syukril':  { pass: 'mra2026',  nama: 'Syukril',  role: 'supervisor' },
+  'solaeman': { pass: 'mra2026',  nama: 'Solaeman', role: 'foreman' },
+  'admin':    { pass: 'admin123', nama: 'Admin',     role: 'admin' }
+};
+
+function doLogin(){
+  var user  = (document.getElementById('login-user').value||'').trim().toLowerCase();
+  var pass  = document.getElementById('login-pass').value||'';
+  var errEl = document.getElementById('login-error');
+  if(!MMS_USERS[user] || MMS_USERS[user].pass !== pass){
+    errEl.textContent = 'Username atau password salah';
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+  sessionStorage.setItem('mms_user', JSON.stringify({user:user, nama:MMS_USERS[user].nama, role:MMS_USERS[user].role}));
+  document.getElementById('login-overlay').style.display = 'none';
+  var hNama = document.getElementById('header-user');
+  if(hNama) hNama.textContent = MMS_USERS[user].nama;
+  if(typeof initSync === 'function') setTimeout(initSync, 500);
+}
+
+function checkSession(){
+  var sess = sessionStorage.getItem('mms_user');
+  if(sess){
+    try {
+      var u = JSON.parse(sess);
+      var ov = document.getElementById('login-overlay');
+      if(ov) ov.style.display = 'none';
+      var hNama = document.getElementById('header-user');
+      if(hNama) hNama.textContent = u.nama;
+      return true;
+    } catch(e){}
+  }
+  return false;
+}
+
+function doLogout(){
+  sessionStorage.removeItem('mms_user');
+  location.reload();
+}
+</script>
 </head>
 <body>
 <header>
@@ -1205,50 +1250,6 @@ textarea{resize:vertical;min-height:65px}
 <div id="toast"></div>
 
 <script>
-
-// ===================== LOGIN =====================
-var MMS_USERS = {
-  'syukril':  { pass: 'mra2026',  nama: 'Syukril',  role: 'supervisor' },
-  'solaeman': { pass: 'mra2026',  nama: 'Solaeman', role: 'foreman' },
-  'admin':    { pass: 'admin123', nama: 'Admin',     role: 'admin' }
-};
-
-function doLogin(){
-  var user  = (document.getElementById('login-user').value||'').trim().toLowerCase();
-  var pass  = document.getElementById('login-pass').value||'';
-  var errEl = document.getElementById('login-error');
-  if(!MMS_USERS[user] || MMS_USERS[user].pass !== pass){
-    errEl.textContent = 'Username atau password salah';
-    errEl.style.display = 'block';
-    document.getElementById('login-pass').value = '';
-    return;
-  }
-  sessionStorage.setItem('mms_user', JSON.stringify({user:user, nama:MMS_USERS[user].nama, role:MMS_USERS[user].role}));
-  document.getElementById('login-overlay').style.display = 'none';
-  var hNama = document.getElementById('header-user');
-  if(hNama) hNama.textContent = MMS_USERS[user].nama;
-  setTimeout(initSync, 500);
-}
-
-function checkSession(){
-  var sess = sessionStorage.getItem('mms_user');
-  if(sess){
-    try {
-      var u = JSON.parse(sess);
-      var ov = document.getElementById('login-overlay');
-      if(ov) ov.style.display = 'none';
-      var hNama = document.getElementById('header-user');
-      if(hNama) hNama.textContent = u.nama;
-      return true;
-    } catch(e){}
-  }
-  return false;
-}
-
-function doLogout(){
-  sessionStorage.removeItem('mms_user');
-  location.reload();
-}
 
 
 // ===================== DATA =====================
