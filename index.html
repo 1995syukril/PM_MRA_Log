@@ -182,11 +182,13 @@ textarea{resize:vertical;min-height:65px}
 .pic-opt:hover{background:var(--bg2);}
 .pic-opt.selected{background:var(--accent2);color:#fff;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <header>
   <div class="hl">
-    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div>
+    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div><div style="display:flex;align-items:center;gap:8px"><span id="header-user" style="font-family:var(--mono);font-size:10px;color:#b5860d"></span><button onclick="doLogout()" style="background:none;border:1px solid #555;color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;cursor:pointer">KELUAR</div>
     <div class="hbadge">PM SYSTEM</div>
   </div>
   <div class="hright">
@@ -198,6 +200,29 @@ textarea{resize:vertical;min-height:65px}
     </div>
   </div>
 </header>
+
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1814;z-index:9999;display:flex;align-items:center;justify-content:center">
+  <div style="background:#222;border:1px solid #b5860d;padding:32px;width:320px;font-family:var(--mono)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:28px">🏢</div>
+      <div style="font-size:13px;font-weight:700;color:#b5860d;letter-spacing:2px">MAINTENANCE MANAGEMENT SYSTEM</div>
+      <div style="font-size:10px;color:#888;margin-top:4px">Menteng Regency Apartemen</div>
+    </div>
+    <div id="login-error" style="display:none;background:#e74c3c;color:#fff;padding:8px;font-size:10px;margin-bottom:12px;text-align:center"></div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:10px;color:#888;display:block;margin-bottom:4px">USERNAME</label>
+      <input type="text" id="login-user" class="fi" placeholder="Username" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:10px;color:#888;display:block;margin-bottom:4px">PASSWORD</label>
+      <input type="password" id="login-pass" class="fi" placeholder="Password" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" class="btn bprim" style="width:100%;padding:10px;font-size:12px;letter-spacing:1px">🔐 MASUK</button>
+    <div style="text-align:center;margin-top:16px;font-size:9px;color:#555">MMS MRA v2.0 &copy; 2026</div>
+  </div>
+</div>
 
 <nav>
   <button class="active" onclick="showTab('dashboard',this,false)">📊 Dashboard</button>
@@ -213,6 +238,7 @@ textarea{resize:vertical;min-height:65px}
   <button onclick="showTab('sparepart',this,false)">📦 Spare Part</button>
   <button onclick="showTab('agenda',this,false)">📅 Agenda</button>
   <button onclick="showTab('workplan',this,false)">📋 Work Plan</button>
+  <button onclick="showTab('jadwal',this,false)">👷 Jadwal</button>
 </nav>
 
 <main>
@@ -1095,6 +1121,85 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </section>
 
+
+<!-- ===================== TAB JADWAL ===================== -->
+<section class="section" id="tab-jadwal">
+  <div class="card">
+    <div style="background:var(--accent2);color:#fff;padding:10px 14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:14px">
+      👷 JADWAL KERJA MAINTENANCE
+    </div>
+
+    <!-- Filter bulan tahun -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <select id="jd-bln" class="fi" style="width:130px" onchange="renderJadwal()">
+        <option value="1">Januari</option><option value="2">Februari</option>
+        <option value="3">Maret</option><option value="4">April</option>
+        <option value="5">Mei</option><option value="6">Juni</option>
+        <option value="7">Juli</option><option value="8">Agustus</option>
+        <option value="9">September</option><option value="10">Oktober</option>
+        <option value="11">November</option><option value="12">Desember</option>
+      </select>
+      <select id="jd-thn" class="fi" style="width:90px" onchange="renderJadwal()">
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+        <option value="2027">2027</option>
+      </select>
+      <button class="btn bprim bsm" onclick="showJadwalInput()">✏️ Input Manual</button>
+      <label class="btn bout bsm" style="cursor:pointer">
+        📊 Import Excel
+        <input type="file" id="jd-excel-file" accept=".xlsx,.xls" style="display:none" onchange="importJadwalExcel(this)">
+      </label>
+      <label class="btn bout bsm" style="cursor:pointer">
+        📸 Scan Foto
+        <input type="file" id="jd-foto-file" accept="image/*" style="display:none" onchange="importJadwalFoto(this)">
+      </label>
+      <button class="btn bout bsm" onclick="generateBulanDepan()" style="color:var(--accent2)">🔄 Generate Bulan Depan</button>
+      <button class="btn bout bsm" onclick="cetakJadwal()">🖨️ Cetak PDF</button>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="jd-loading" style="display:none;text-align:center;padding:30px;font-family:var(--mono);font-size:12px;color:var(--accent2)">
+      <div style="font-size:24px;margin-bottom:8px">⏳</div>
+      <div id="jd-loading-text">Memproses...</div>
+    </div>
+    <!-- Loading -->
+    <div id="jd-loading" style="display:none;text-align:center;padding:20px;font-family:var(--mono);font-size:11px;color:var(--accent2)">
+      ⏳ Memproses... mohon tunggu
+    </div>
+    <!-- Jadwal grid -->
+    <div id="jd-grid" style="overflow-x:auto"></div>
+
+    <!-- Form input jadwal (hidden by default) -->
+    <div id="jd-form" style="display:none;margin-top:16px;background:var(--bg2);padding:14px;border:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:10px">
+        ✏️ INPUT JADWAL BULANAN
+        <button onclick="hideJadwalInput()" style="float:right;background:none;border:none;color:var(--text2);cursor:pointer;font-size:12px">✕</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text2);margin-bottom:10px">
+        Klik sel pada tabel di bawah untuk mengisi shift. Kode: P=Pagi, S=Siang, M=Malam, S1=Sore, PS=Pagi+Siang(lembur), SM=Siang+Malam(lembur), C=Cuti, -=Libur
+      </div>
+      <div id="jd-input-grid" style="overflow-x:auto"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bprim bsm" onclick="simpanJadwal()">💾 SIMPAN JADWAL</button>
+        <button class="btn bout bsm" onclick="hideJadwalInput()">✕ BATAL</button>
+      </div>
+    </div>
+
+    <!-- Legenda -->
+    <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">
+      <span style="font-family:var(--mono);font-size:9px;color:var(--text2)">KETERANGAN:</span>
+      <span style="background:#2980b9;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">P Pagi</span>
+      <span style="background:#27ae60;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">S Siang</span>
+      <span style="background:#8e44ad;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">M Malam</span>
+      <span style="background:#e67e22;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">S1 Sore</span>
+      <span style="background:#c0392b;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">PS Lembur</span>
+      <span style="background:#c0392b;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">SM Lembur</span>
+      <span style="background:#f39c12;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">C Cuti</span>
+      <span style="background:#888;color:#fff;padding:1px 6px;font-size:9px;font-family:var(--mono)">- Libur</span>
+    </div>
+  </div>
+</section>
+
 </main>
 <div id="toast"></div>
 
@@ -1225,6 +1330,8 @@ function showTab(id,btn,isVendor){
   // Set current month in laporan
   var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
   renderWP();
+  // Set current month jadwal
+  var jdBln=document.getElementById('jd-bln'); if(jdBln) jdBln.value=new Date().getMonth()+1; renderJadwal();
   // Set default bulan di laporan bulanan
   var d=new Date();
   var lbBln=document.getElementById('lb-bln');
@@ -3062,7 +3169,10 @@ function simpanWP(){
   }
 
   localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
-  showToast('Work Plan tersimpan!','vendor');
+  sendToSheets(Object.assign({}, record, {type:'workplan'})).then(function(r){
+    if(r && r.status==='success') showToast('Work Plan tersimpan + dikirim ke Sheets!','vendor');
+    else showToast('Work Plan tersimpan lokal','vendor');
+  });
   resetWP();
   renderWP();
 }
@@ -3308,7 +3418,1093 @@ function getSertifAlert(){
   return alerts;
 }
 
+
+// ===================== JADWAL KERJA =====================
+
+// Libur Nasional Indonesia
+var LIBUR_NASIONAL = {
+  '2026-01-01': 'Tahun Baru 2026',
+  '2026-01-16': 'Isra Mikraj',
+  '2026-02-17': 'Tahun Baru Imlek 2577',
+  '2026-03-19': 'Hari Suci Nyepi',
+  '2026-03-21': 'Idul Fitri 1447 H',
+  '2026-03-22': 'Idul Fitri 1447 H',
+  '2026-04-03': 'Wafat Yesus Kristus',
+  '2026-04-05': 'Hari Paskah',
+  '2026-05-01': 'Hari Buruh Internasional',
+  '2026-05-14': 'Kenaikan Yesus Kristus',
+  '2026-05-27': 'Idul Adha 1447 H',
+  '2026-05-31': 'Hari Raya Waisak 2570',
+  '2026-06-01': 'Hari Lahir Pancasila',
+  '2026-06-16': 'Tahun Baru Islam 1448 H',
+  '2026-08-17': 'Hari Kemerdekaan RI',
+  '2026-08-25': 'Maulid Nabi Muhammad SAW',
+  '2026-12-25': 'Hari Natal'
+};
+
+function fetchLiburNasional(thn, bln, callback){
+  callback();
+}
+
+function isLiburNasional(thn, bln, tgl){
+  var dateStr = thn+'-'+String(bln).padStart(2,'0')+'-'+String(tgl).padStart(2,'0');
+  return LIBUR_NASIONAL[dateStr]||'';
+}
+
+var PERSONIL_LIST = [
+  'Syukril','Solaeman','Ilham','Joko','Nanang',
+  'Ridwan Naufal','Sakim','Dasrul','Aris','Sumartono'
+];
+
+var SHIFT_CONFIG = {
+  'P':  { label:'P',  warna:'#2980b9', title:'Pagi' },
+  'S':  { label:'S',  warna:'#27ae60', title:'Siang' },
+  'M':  { label:'M',  warna:'#8e44ad', title:'Malam' },
+  'S1': { label:'S1', warna:'#e67e22', title:'Sore' },
+  'PS': { label:'PS', warna:'#c0392b', title:'Lembur Pagi+Siang' },
+  'SM': { label:'SM', warna:'#c0392b', title:'Lembur Siang+Malam' },
+  'C':  { label:'C',  warna:'#f39c12', title:'Cuti' },
+  '-':  { label:'-',  warna:'#888',    title:'Libur' },
+  '':   { label:'',   warna:'transparent', title:'' }
+};
+
+var HARI_SINGKAT = ['MG','SN','SL','RB','KM','JM','SB'];
+
+// LOG_JADWAL: { '2026-4': { 'Syukril': ['P','S','M',...], ... } }
+var LOG_JADWAL = JSON.parse(localStorage.getItem('pm_jadwal_v1')||'{}');
+var jdEditData = {}; // temp edit buffer
+
+function getJadwalKey(){
+  var bln = document.getElementById('jd-bln').value;
+  var thn = document.getElementById('jd-thn').value;
+  return thn+'-'+bln;
+}
+
+function getDaysInMonth(thn, bln){
+  return new Date(thn, bln, 0).getDate();
+}
+
+function renderJadwal(){
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  fetchLiburNasional(thn, bln, function(){ _renderJadwalGrid(); });
+}
+
+function _renderJadwalGrid(){
+  if(!el) return;
+  var key = getJadwalKey();
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var days = getDaysInMonth(thn, bln);
+  var data = LOG_JADWAL[key] || {};
+
+  if(!data || Object.keys(data).length === 0){
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2);font-family:var(--mono);font-size:11px">'
+      +'Belum ada jadwal untuk periode ini.<br>Klik <strong>✏️ Input Jadwal</strong> untuk mengisi.</div>';
+    return;
+  }
+
+  // Build header
+  var hdr = '<th style="'+thStyle()+'min-width:100px">NAMA</th>';
+  for(var d=1;d<=days;d++){
+    var dayOfWeek = new Date(thn,bln-1,d).getDay();
+    var hari = HARI_SINGKAT[dayOfWeek];
+    var isWeekend = dayOfWeek===0||dayOfWeek===6;
+    var namaLibur = isLiburNasional(thn,bln,d);
+    var isLibur = !!namaLibur;
+    var cellBg = isLibur ? 'background:#e74c3c' : (isWeekend ? 'background:#b5860d' : '');
+    var cellTitle = namaLibur ? 'title="'+namaLibur+'"' : '';
+    hdr += '<th '+cellTitle+' style="'+thStyle()+'min-width:30px;font-size:8px;text-align:center;'+cellBg+'">'
+      +d+'<br>'+hari+(isLibur?'<br>🔴':'')+'</th>';
+  }
+  hdr += '<th style="'+thStyle()+'min-width:40px;text-align:center">JML</th>';
+
+  var rows = PERSONIL_LIST.map(function(nama){
+    var shifts = data[nama] || [];
+    var count = shifts.filter(function(s){ return s&&s!=='-'&&s!=='C'&&s!==''; }).length;
+    var cells = '';
+    for(var d=0;d<days;d++){
+      var s = shifts[d]||'';
+      var cfg = SHIFT_CONFIG[s]||SHIFT_CONFIG[''];
+      var dayOfWeek = new Date(thn,bln-1,d+1).getDay();
+      var isWeekend = dayOfWeek===0||dayOfWeek===6;
+      cells += '<td style="text-align:center;padding:3px;font-family:var(--mono);font-size:10px;font-weight:700;'
+        +'background:'+(s?cfg.warna:(isWeekend?'#f5f0e8':'var(--bg)'))
+        +';color:'+(s&&s!==''?'#fff':'var(--text2)')
+        +';border:1px solid var(--border)">'
+        +cfg.label+'</td>';
+    }
+    return '<tr>'
+      +'<td style="padding:5px 8px;font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid var(--border);white-space:nowrap">'+nama+'</td>'
+      +cells
+      +'<td style="text-align:center;padding:3px;font-family:var(--mono);font-size:10px;font-weight:700;border:1px solid var(--border);color:var(--accent2)">'+count+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Summary row
+  var summaryP=[], summaryS=[], summaryM=[];
+  for(var d=1;d<=days;d++){
+    var cp=0,cs=0,cm=0;
+    PERSONIL_LIST.forEach(function(nama){
+      var s = (data[nama]||[])[d-1]||'';
+      if(s==='P'||s==='PS') cp++;
+      if(s==='S'||s==='PS'||s==='SM'||s==='S1') cs++;
+      if(s==='M'||s==='SM') cm++;
+    });
+    summaryP.push(cp); summaryS.push(cs); summaryM.push(cm);
+  }
+
+  var makeRow = function(label, arr, color){
+    var cells = arr.map(function(n){
+      return '<td style="text-align:center;padding:2px;font-family:var(--mono);font-size:9px;border:1px solid var(--border);color:'+color+'">'+n+'</td>';
+    }).join('');
+    return '<tr><td style="padding:4px 8px;font-family:var(--mono);font-size:9px;font-weight:700;border:1px solid var(--border);color:'+color+'">'+label+'</td>'+cells+'<td style="border:1px solid var(--border)"></td></tr>';
+  };
+
+  el.innerHTML = '<table style="border-collapse:collapse;font-size:10px">'
+    +'<thead><tr>'+hdr+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'<tfoot>'
+    +makeRow('Shift Pagi',summaryP,'#2980b9')
+    +makeRow('Shift Siang',summaryS,'#27ae60')
+    +makeRow('Shift Malam',summaryM,'#8e44ad')
+    +'</tfoot>'
+    +'</table>';
+}
+
+function thStyle(){
+  return 'background:#1a1814;color:#fff;padding:4px 6px;font-family:var(--mono);font-size:9px;border:1px solid #444;white-space:nowrap;';
+}
+
+function showJadwalInput(){
+  var key = getJadwalKey();
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var days = getDaysInMonth(thn, bln);
+  var existing = LOG_JADWAL[key]||{};
+
+  // Copy existing to edit buffer
+  jdEditData = {};
+  PERSONIL_LIST.forEach(function(nama){
+    jdEditData[nama] = (existing[nama]||[]).slice();
+    while(jdEditData[nama].length < days) jdEditData[nama].push('');
+  });
+
+  renderJadwalInput();
+  document.getElementById('jd-form').style.display = 'block';
+  document.getElementById('jd-form').scrollIntoView({behavior:'smooth'});
+}
+
+function hideJadwalInput(){
+  document.getElementById('jd-form').style.display = 'none';
+  jdEditData = {};
+}
+
+function renderJadwalInput(){
+  var el = document.getElementById('jd-input-grid');
+  if(!el) return;
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var days = getDaysInMonth(thn, bln);
+
+  var hdr = '<th style="'+thStyle()+'min-width:100px">NAMA</th>';
+  for(var d=1;d<=days;d++){
+    var dayOfWeek = new Date(thn,bln-1,d).getDay();
+    var isWeekend = dayOfWeek===0||dayOfWeek===6;
+    var namaLiburIn = isLiburNasional(thn,bln,d);
+    var isLiburIn = !!namaLiburIn;
+    var inputBg = isLiburIn ? 'background:#e74c3c' : (isWeekend ? 'background:#b5860d' : '');
+    hdr += '<th title="'+(namaLiburIn||'')+'" style="'+thStyle()+'min-width:42px;text-align:center;'+inputBg+'">'
+      +d+'<br>'+HARI_SINGKAT[dayOfWeek]+(isLiburIn?'<br>🔴':'')+'</th>';
+  }
+
+  var rows = PERSONIL_LIST.map(function(nama){
+    var cells = '';
+    for(var d=0;d<days;d++){
+      var val = (jdEditData[nama]||[])[d]||'';
+      cells += '<td style="padding:1px;border:1px solid var(--border)">'
+        +'<select onchange="setJdCell(\''+nama+'\','+d+',this.value)" '
+        +'style="width:42px;font-family:var(--mono);font-size:9px;padding:2px;border:none;'
+        +'background:'+(SHIFT_CONFIG[val]?SHIFT_CONFIG[val].warna:'var(--bg)')
+        +';color:'+(val&&val!==''?'#fff':'var(--text1)')+';">'
+        +Object.keys(SHIFT_CONFIG).map(function(k){
+          return '<option value="'+k+'"'+(val===k?' selected':'')+'>'+k+'</option>';
+        }).join('')
+        +'</select></td>';
+    }
+    return '<tr>'
+      +'<td style="padding:5px 8px;font-family:var(--mono);font-size:10px;font-weight:600;border:1px solid var(--border);white-space:nowrap">'+nama+'</td>'
+      +cells+'</tr>';
+  }).join('');
+
+  el.innerHTML = '<table style="border-collapse:collapse">'+
+    '<thead><tr>'+hdr+'</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function setJdCell(nama, dayIdx, val){
+  if(!jdEditData[nama]) jdEditData[nama]=[];
+  jdEditData[nama][dayIdx] = val;
+  // Update cell color
+  var selects = document.querySelectorAll('#jd-input-grid select');
+  selects.forEach(function(sel){
+    var v = sel.value;
+    var cfg = SHIFT_CONFIG[v]||SHIFT_CONFIG[''];
+    sel.style.background = v ? cfg.warna : 'var(--bg)';
+    sel.style.color = v&&v!=='' ? '#fff' : 'var(--text1)';
+  });
+}
+
+function simpanJadwal(){
+  var key = getJadwalKey();
+  LOG_JADWAL[key] = JSON.parse(JSON.stringify(jdEditData));
+  localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+  showToast('Jadwal tersimpan!','vendor');
+  hideJadwalInput();
+  renderJadwal();
+}
+
+function cetakJadwal(){
+  var key = getJadwalKey();
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var days = getDaysInMonth(thn, bln);
+  var data = LOG_JADWAL[key]||{};
+  var BLN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  var hdr = '<th style="background:#1a1814;color:#fff;padding:4px;border:1px solid #444;font-size:9px">NO</th>'
+    +'<th style="background:#1a1814;color:#fff;padding:4px;border:1px solid #444;font-size:9px;min-width:80px">NAMA</th>';
+  for(var d=1;d<=days;d++){
+    var dw = new Date(thn,bln-1,d).getDay();
+    var isWE = dw===0||dw===6;
+    hdr += '<th style="background:'+(isWE?'#b5860d':'#1a1814')+';color:#fff;padding:2px;border:1px solid #444;font-size:8px;text-align:center;min-width:20px">'+d+'<br>'+HARI_SINGKAT[dw]+'</th>';
+  }
+  hdr += '<th style="background:#1a1814;color:#fff;padding:4px;border:1px solid #444;font-size:9px">JML</th>';
+
+  var rows = PERSONIL_LIST.map(function(nama, i){
+    var shifts = data[nama]||[];
+    var count = shifts.filter(function(s){return s&&s!=='-'&&s!=='C'&&s!=='';}).length;
+    var cells = '';
+    for(var d=0;d<days;d++){
+      var s = shifts[d]||'';
+      var cfg = SHIFT_CONFIG[s]||SHIFT_CONFIG[''];
+      cells += '<td style="text-align:center;padding:2px;font-size:8px;font-weight:700;border:1px solid #ddd;'
+        +'background:'+(s?cfg.warna:'')
+        +';color:'+(s&&s!==''?'#fff':'#333')+'">'+cfg.label+'</td>';
+    }
+    return '<tr>'
+      +'<td style="padding:3px 5px;font-size:9px;border:1px solid #ddd;text-align:center">'+(i+1)+'</td>'
+      +'<td style="padding:3px 5px;font-size:9px;font-weight:600;border:1px solid #ddd;white-space:nowrap">'+nama+'</td>'
+      +cells
+      +'<td style="text-align:center;padding:3px;font-size:9px;font-weight:700;border:1px solid #ddd;color:#b5860d">'+count+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var win = window.open('','_blank');
+  win.document.write('<html><head><title>Jadwal Kerja '+BLN[bln]+' '+thn+'</title>'
+    +'<style>body{font-family:Courier New,monospace;padding:15px}table{border-collapse:collapse;width:100%}'
+    +'@media print{button{display:none}@page{size:landscape}}</style></head><body>');
+  win.document.write('<button onclick="window.print()" style="margin-bottom:12px;padding:6px 14px;background:#b5860d;color:#fff;border:none;cursor:pointer">🖨️ PRINT / PDF</button>');
+  win.document.write('<div style="text-align:center;margin-bottom:10px">'
+    +'<div style="font-size:13px;font-weight:700">JADWAL KERJA MAINTENANCE</div>'
+    +'<div style="font-size:11px">Menteng Regency Apartemen</div>'
+    +'<div style="font-size:11px">Periode: '+BLN[bln]+' '+thn+'</div>'
+    +'</div>');
+  win.document.write('<table><thead><tr>'+hdr+'</tr></thead><tbody>'+rows+'</tbody></table>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+// Ambil jadwal hari ini untuk WA
+function getJadwalHariIni(){
+  var now = new Date();
+  var key = now.getFullYear()+'-'+(now.getMonth()+1);
+  var dayIdx = now.getDate()-1;
+  var data = LOG_JADWAL[key];
+  if(!data) return null;
+
+  var result = {P:[],S:[],M:[],S1:[],PS:[],SM:[],C:[],libur:[]};
+  PERSONIL_LIST.forEach(function(nama){
+    var s = (data[nama]||[])[dayIdx]||'';
+    if(result[s]) result[s].push(nama);
+    else if(s==='-'||s==='') result.libur.push(nama);
+  });
+  return result;
+}
+
+
+// ===================== JADWAL IMPORT & GENERATE =====================
+
+function showJdLoading(txt){
+  var ov = document.getElementById('jd-loading');
+  var tx = document.getElementById('jd-loading-text');
+  if(ov){ ov.style.display='block'; }
+  if(tx){ tx.textContent = txt||'Memproses...'; }
+  var grid = document.getElementById('jd-grid');
+  if(grid) grid.style.display='none';
+}
+
+function hideJdLoading(){
+  var ov = document.getElementById('jd-loading');
+  if(ov) ov.style.display='none';
+  var grid = document.getElementById('jd-grid');
+  if(grid) grid.style.display='block';
+}
+
+// ===================== IMPORT EXCEL =====================
+function importJadwalExcel(input){
+  var file = input.files[0];
+  if(!file){ return; }
+  showJdLoading('Membaca file Excel...');
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Find header row (row with tanggal numbers 1,2,3...)
+      var headerRowIdx = -1;
+      var firstDayCol = -1;
+      for(var i=0;i<rows.length;i++){
+        for(var j=0;j<rows[i].length;j++){
+          if(rows[i][j]==1 && rows[i][j+1]==2 && rows[i][j+2]==3){
+            headerRowIdx = i;
+            firstDayCol = j;
+            break;
+          }
+        }
+        if(headerRowIdx>=0) break;
+      }
+
+      if(headerRowIdx===-1){
+        hideJdLoading();
+        alert('Format Excel tidak dikenali. Pastikan ada baris dengan angka 1, 2, 3... sebagai header tanggal.');
+        input.value='';
+        return;
+      }
+
+      // Get days count from header
+      var days = 0;
+      for(var j=firstDayCol;j<rows[headerRowIdx].length;j++){
+        var v = rows[headerRowIdx][j];
+        if(typeof v==='number' && v>=1 && v<=31) days = v;
+        else if(days>0) break;
+      }
+
+      // Find name column (usually col 1 or 2)
+      var nameCol = 1;
+      for(var j=0;j<firstDayCol;j++){
+        var found = PERSONIL_LIST.some(function(p){
+          return rows[headerRowIdx+1] && rows[headerRowIdx+1][j] &&
+                 rows[headerRowIdx+1][j].toString().toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
+        });
+        if(found){ nameCol=j; break; }
+      }
+
+      // Parse shift data
+      var result = {};
+      var VALID_SHIFTS = ['P','S','M','S1','PS','SM','C','-',''];
+
+      for(var i=headerRowIdx+1;i<rows.length;i++){
+        var row = rows[i];
+        var rawName = (row[nameCol]||'').toString().trim();
+        if(!rawName) continue;
+
+        // Match to PERSONIL_LIST
+        var matched = PERSONIL_LIST.find(function(p){
+          return rawName.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0 ||
+                 p.toLowerCase().indexOf(rawName.toLowerCase())>=0;
+        });
+        if(!matched) continue;
+
+        var shifts = [];
+        for(var d=0;d<days;d++){
+          var cell = (row[firstDayCol+d]||'').toString().trim().toUpperCase();
+          if(VALID_SHIFTS.indexOf(cell)>=0) shifts.push(cell);
+          else shifts.push('');
+        }
+        result[matched] = shifts;
+      }
+
+      if(Object.keys(result).length===0){
+        hideJdLoading();
+        alert('Tidak ada data personil yang terbaca. Cek format Excel.');
+        input.value='';
+        return;
+      }
+
+      // Save to current period
+      var key = getJadwalKey();
+      LOG_JADWAL[key] = result;
+      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+      hideJdLoading();
+      input.value='';
+      renderJadwal();
+      showToast('Jadwal berhasil diimport dari Excel! ('+Object.keys(result).length+' personil)','vendor');
+
+    } catch(err){
+      hideJdLoading();
+      input.value='';
+      alert('Gagal baca Excel: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ===================== IMPORT FOTO (AI) =====================
+function importJadwalFoto(input){
+  var file = input.files[0];
+  if(!file){ return; }
+
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var BLN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni',
+                   'Juli','Agustus','September','Oktober','November','Desember'];
+
+  showJdLoading('Menganalisa foto jadwal dengan AI... (mungkin 15-30 detik)');
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var base64 = e.target.result.split(',')[1];
+    var mediaType = file.type||'image/jpeg';
+
+    var prompt = 'Ini adalah foto jadwal kerja maintenance bulan '+BLN_NAMES[bln]+' '+thn+'.\n'
+      +'Baca semua data shift dari tabel tersebut.\n'
+      +'Nama personil yang mungkin ada: '+PERSONIL_LIST.join(', ')+'.\n\n'
+      +'Kode shift: P=Pagi, S=Siang, M=Malam, S1=Sore, PS=Pagi+Siang(lembur), SM=Siang+Malam(lembur), C=Cuti, -=Libur, (kosong)=tidak ada data.\n\n'
+      +'Kembalikan HANYA JSON valid tanpa penjelasan apapun, format:\n'
+      +'{\n'
+      +'  "Syukril": ["P","S","M",...],\n'
+      +'  "Solaeman": ["P","","-",...]\n'
+      +'}\n\n'
+      +'Setiap array harus berisi tepat '+getDaysInMonth(thn,bln)+' elemen sesuai jumlah hari di bulan tersebut.\n'
+      +'Jika sel kosong atau tidak terbaca, gunakan string kosong "".\n'
+      +'Hanya sertakan nama yang ada di foto.';
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type:'image', source:{ type:'base64', media_type:mediaType, data:base64 } },
+            { type:'text', text:prompt }
+          ]
+        }]
+      })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var text = data.content && data.content[0] ? data.content[0].text : '';
+      // Clean JSON
+      text = text.replace(/```json/g,'').replace(/```/g,'').trim();
+      var result = JSON.parse(text);
+
+      // Validate & normalize
+      var days = getDaysInMonth(thn, bln);
+      var VALID = ['P','S','M','S1','PS','SM','C','-',''];
+      var normalized = {};
+      var count = 0;
+
+      Object.keys(result).forEach(function(nama){
+        var matched = PERSONIL_LIST.find(function(p){
+          return p.toLowerCase().indexOf(nama.toLowerCase().split(' ')[0])>=0 ||
+                 nama.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
+        })||nama;
+        var shifts = result[nama];
+        while(shifts.length < days) shifts.push('');
+        shifts = shifts.slice(0,days).map(function(s){
+          s = s.toString().trim().toUpperCase();
+          return VALID.indexOf(s)>=0 ? s : '';
+        });
+        normalized[matched] = shifts;
+        count++;
+      });
+
+      var key = getJadwalKey();
+      LOG_JADWAL[key] = normalized;
+      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+      hideJdLoading();
+      input.value='';
+      renderJadwal();
+      showToast('Jadwal berhasil dibaca dari foto! ('+count+' personil)','vendor');
+    })
+    .catch(function(err){
+      hideJdLoading();
+      input.value='';
+      alert('Gagal analisa foto: '+err.message+'\nCoba lagi atau gunakan input manual.');
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===================== GENERATE BULAN DEPAN =====================
+function generateBulanDepan(){
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var key = getJadwalKey();
+  var currentData = LOG_JADWAL[key];
+
+  if(!currentData || Object.keys(currentData).length===0){
+    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.');
+    return;
+  }
+
+  // Next month
+  var nextBln = bln===12 ? 1 : bln+1;
+  var nextThn = bln===12 ? thn+1 : thn;
+  var nextDays = getDaysInMonth(nextThn, nextBln);
+  var nextKey = nextThn+'-'+nextBln;
+
+  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length>0){
+    if(!confirm('Jadwal '+nextBln+'/'+nextThn+' sudah ada. Timpa dengan generate baru?')) return;
+  }
+
+  // Rotation: P→S→M→P, S→M→P→S, M→P→S→M
+  var ROTATE = {'P':'S','S':'M','M':'P','S1':'S1','PS':'PS','SM':'SM','C':'','−':'','-':'',''  :''};
+
+  var newData = {};
+  PERSONIL_LIST.forEach(function(nama){
+    var oldShifts = currentData[nama]||[];
+    // Find dominant shift for this person to determine rotation
+    var counts = {P:0,S:0,M:0};
+    oldShifts.forEach(function(s){ if(counts[s]!==undefined) counts[s]++; });
+    var dominant = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
+
+    var newShifts = [];
+    for(var d=0;d<nextDays;d++){
+      var oldIdx = d < oldShifts.length ? d : d % oldShifts.length;
+      var oldS = oldShifts[oldIdx]||'';
+      var newS = ROTATE[oldS]!==undefined ? ROTATE[oldS] : oldS;
+      newShifts.push(newS);
+    }
+    newData[nama] = newShifts;
+  });
+
+  LOG_JADWAL[nextKey] = newData;
+  localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+
+  // Switch view to next month
+  document.getElementById('jd-bln').value = nextBln;
+  document.getElementById('jd-thn').value = nextThn;
+  renderJadwal();
+
+  var BLN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  showToast('Jadwal '+BLN[nextBln]+' '+nextThn+' berhasil digenerate! Cek & revisi sesuai kebutuhan.','vendor');
+}
+
+
+// ===================== JADWAL IMPORT & GENERATE =====================
+
+function showJdLoading(txt){
+  var ov = document.getElementById('jd-loading');
+  var tx = document.getElementById('jd-loading-text');
+  if(ov){ ov.style.display='block'; }
+  if(tx){ tx.textContent = txt||'Memproses...'; }
+  var grid = document.getElementById('jd-grid');
+  if(grid) grid.style.display='none';
+}
+
+function hideJdLoading(){
+  var ov = document.getElementById('jd-loading');
+  if(ov) ov.style.display='none';
+  var grid = document.getElementById('jd-grid');
+  if(grid) grid.style.display='block';
+}
+
+// ===================== IMPORT EXCEL =====================
+function importJadwalExcel(input){
+  var file = input.files[0];
+  if(!file){ return; }
+  showJdLoading('Membaca file Excel...');
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Find header row (row with tanggal numbers 1,2,3...)
+      var headerRowIdx = -1;
+      var firstDayCol = -1;
+      for(var i=0;i<rows.length;i++){
+        for(var j=0;j<rows[i].length;j++){
+          if(rows[i][j]==1 && rows[i][j+1]==2 && rows[i][j+2]==3){
+            headerRowIdx = i;
+            firstDayCol = j;
+            break;
+          }
+        }
+        if(headerRowIdx>=0) break;
+      }
+
+      if(headerRowIdx===-1){
+        hideJdLoading();
+        alert('Format Excel tidak dikenali. Pastikan ada baris dengan angka 1, 2, 3... sebagai header tanggal.');
+        input.value='';
+        return;
+      }
+
+      // Get days count from header
+      var days = 0;
+      for(var j=firstDayCol;j<rows[headerRowIdx].length;j++){
+        var v = rows[headerRowIdx][j];
+        if(typeof v==='number' && v>=1 && v<=31) days = v;
+        else if(days>0) break;
+      }
+
+      // Find name column (usually col 1 or 2)
+      var nameCol = 1;
+      for(var j=0;j<firstDayCol;j++){
+        var found = PERSONIL_LIST.some(function(p){
+          return rows[headerRowIdx+1] && rows[headerRowIdx+1][j] &&
+                 rows[headerRowIdx+1][j].toString().toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
+        });
+        if(found){ nameCol=j; break; }
+      }
+
+      // Parse shift data
+      var result = {};
+      var VALID_SHIFTS = ['P','S','M','S1','PS','SM','C','-',''];
+
+      for(var i=headerRowIdx+1;i<rows.length;i++){
+        var row = rows[i];
+        var rawName = (row[nameCol]||'').toString().trim();
+        if(!rawName) continue;
+
+        // Match to PERSONIL_LIST
+        var matched = PERSONIL_LIST.find(function(p){
+          return rawName.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0 ||
+                 p.toLowerCase().indexOf(rawName.toLowerCase())>=0;
+        });
+        if(!matched) continue;
+
+        var shifts = [];
+        for(var d=0;d<days;d++){
+          var cell = (row[firstDayCol+d]||'').toString().trim().toUpperCase();
+          if(VALID_SHIFTS.indexOf(cell)>=0) shifts.push(cell);
+          else shifts.push('');
+        }
+        result[matched] = shifts;
+      }
+
+      if(Object.keys(result).length===0){
+        hideJdLoading();
+        alert('Tidak ada data personil yang terbaca. Cek format Excel.');
+        input.value='';
+        return;
+      }
+
+      // Save to current period
+      var key = getJadwalKey();
+      LOG_JADWAL[key] = result;
+      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+      hideJdLoading();
+      input.value='';
+      renderJadwal();
+      showToast('Jadwal berhasil diimport dari Excel! ('+Object.keys(result).length+' personil)','vendor');
+
+    } catch(err){
+      hideJdLoading();
+      input.value='';
+      alert('Gagal baca Excel: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ===================== IMPORT FOTO (AI) =====================
+function importJadwalFoto(input){
+  var file = input.files[0];
+  if(!file){ return; }
+
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var BLN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni',
+                   'Juli','Agustus','September','Oktober','November','Desember'];
+
+  showJdLoading('Menganalisa foto jadwal dengan AI... (mungkin 15-30 detik)');
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var base64 = e.target.result.split(',')[1];
+    var mediaType = file.type||'image/jpeg';
+
+    var prompt = 'Ini adalah foto jadwal kerja maintenance bulan '+BLN_NAMES[bln]+' '+thn+'.\n'
+      +'Baca semua data shift dari tabel tersebut.\n'
+      +'Nama personil yang mungkin ada: '+PERSONIL_LIST.join(', ')+'.\n\n'
+      +'Kode shift: P=Pagi, S=Siang, M=Malam, S1=Sore, PS=Pagi+Siang(lembur), SM=Siang+Malam(lembur), C=Cuti, -=Libur, (kosong)=tidak ada data.\n\n'
+      +'Kembalikan HANYA JSON valid tanpa penjelasan apapun, format:\n'
+      +'{\n'
+      +'  "Syukril": ["P","S","M",...],\n'
+      +'  "Solaeman": ["P","","-",...]\n'
+      +'}\n\n'
+      +'Setiap array harus berisi tepat '+getDaysInMonth(thn,bln)+' elemen sesuai jumlah hari di bulan tersebut.\n'
+      +'Jika sel kosong atau tidak terbaca, gunakan string kosong "".\n'
+      +'Hanya sertakan nama yang ada di foto.';
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type:'image', source:{ type:'base64', media_type:mediaType, data:base64 } },
+            { type:'text', text:prompt }
+          ]
+        }]
+      })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var text = data.content && data.content[0] ? data.content[0].text : '';
+      // Clean JSON
+      text = text.replace(/```json/g,'').replace(/```/g,'').trim();
+      var result = JSON.parse(text);
+
+      // Validate & normalize
+      var days = getDaysInMonth(thn, bln);
+      var VALID = ['P','S','M','S1','PS','SM','C','-',''];
+      var normalized = {};
+      var count = 0;
+
+      Object.keys(result).forEach(function(nama){
+        var matched = PERSONIL_LIST.find(function(p){
+          return p.toLowerCase().indexOf(nama.toLowerCase().split(' ')[0])>=0 ||
+                 nama.toLowerCase().indexOf(p.toLowerCase().split(' ')[0])>=0;
+        })||nama;
+        var shifts = result[nama];
+        while(shifts.length < days) shifts.push('');
+        shifts = shifts.slice(0,days).map(function(s){
+          s = s.toString().trim().toUpperCase();
+          return VALID.indexOf(s)>=0 ? s : '';
+        });
+        normalized[matched] = shifts;
+        count++;
+      });
+
+      var key = getJadwalKey();
+      LOG_JADWAL[key] = normalized;
+      localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+      hideJdLoading();
+      input.value='';
+      renderJadwal();
+      showToast('Jadwal berhasil dibaca dari foto! ('+count+' personil)','vendor');
+    })
+    .catch(function(err){
+      hideJdLoading();
+      input.value='';
+      alert('Gagal analisa foto: '+err.message+'\nCoba lagi atau gunakan input manual.');
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===================== GENERATE BULAN DEPAN =====================
+function generateBulanDepan(){
+  var bln = parseInt(document.getElementById('jd-bln').value);
+  var thn = parseInt(document.getElementById('jd-thn').value);
+  var key = getJadwalKey();
+  var currentData = LOG_JADWAL[key];
+
+  if(!currentData || Object.keys(currentData).length===0){
+    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.');
+    return;
+  }
+
+  // Next month
+  var nextBln = bln===12 ? 1 : bln+1;
+  var nextThn = bln===12 ? thn+1 : thn;
+  var nextDays = getDaysInMonth(nextThn, nextBln);
+  var nextKey = nextThn+'-'+nextBln;
+
+  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length>0){
+    if(!confirm('Jadwal '+nextBln+'/'+nextThn+' sudah ada. Timpa dengan generate baru?')) return;
+  }
+
+  // Rotation: P→S→M→P, S→M→P→S, M→P→S→M
+  var ROTATE = {'P':'S','S':'M','M':'P','S1':'S1','PS':'PS','SM':'SM','C':'','−':'','-':'',''  :''};
+
+  var newData = {};
+  PERSONIL_LIST.forEach(function(nama){
+    var oldShifts = currentData[nama]||[];
+    // Find dominant shift for this person to determine rotation
+    var counts = {P:0,S:0,M:0};
+    oldShifts.forEach(function(s){ if(counts[s]!==undefined) counts[s]++; });
+    var dominant = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
+
+    var newShifts = [];
+    for(var d=0;d<nextDays;d++){
+      var oldIdx = d < oldShifts.length ? d : d % oldShifts.length;
+      var oldS = oldShifts[oldIdx]||'';
+      var newS = ROTATE[oldS]!==undefined ? ROTATE[oldS] : oldS;
+      newShifts.push(newS);
+    }
+    newData[nama] = newShifts;
+  });
+
+  LOG_JADWAL[nextKey] = newData;
+  localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
+
+  // Switch view to next month
+  document.getElementById('jd-bln').value = nextBln;
+  document.getElementById('jd-thn').value = nextThn;
+  renderJadwal();
+
+  var BLN = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  showToast('Jadwal '+BLN[nextBln]+' '+nextThn+' berhasil digenerate! Cek & revisi sesuai kebutuhan.','vendor');
+}
+
+
+// ===================== SYNC FROM SHEETS =====================
+
+var syncInProgress = false;
+
+function loadFromSheets(){
+  if(!SHEETS_URL || SHEETS_URL.indexOf('GANTI') >= 0) return;
+  if(syncInProgress) return;
+  syncInProgress = true;
+
+  updateSheetsStatus(null); // loading state
+  var statusEl = document.getElementById('sheets-status');
+  if(statusEl) statusEl.textContent = 'Sheets: Memuat...';
+
+  fetch(SHEETS_URL + '?action=load')
+    .then(function(r){ return r.json(); })
+    .then(function(resp){
+      syncInProgress = false;
+      if(resp.status !== 'ok' || !resp.data){
+        updateSheetsStatus(false);
+        return;
+      }
+
+      var d = resp.data;
+
+      // ---- PM & Complaint & Renovasi → LOG_I ----
+      var logI = [];
+      if(d.pm && d.pm.length){
+        d.pm.forEach(function(row){
+          logI.push({
+            ts: row['Timestamp']||'', jenis:'pm',
+            tgl: row['Tanggal']||'', jam: row['Jam']||'',
+            teknisi: row['Personil']||'', id: row['ID Equipment']||'',
+            nama: row['Nama Equipment']||'', kategori: row['Kategori']||'',
+            lokasi: row['Lokasi']||'', frekuensi: row['Frekuensi']||'',
+            kondisi: row['Kondisi']||'',
+            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
+            catatan: row['Catatan']||''
+          });
+        });
+      }
+      if(d.complaint && d.complaint.length){
+        d.complaint.forEach(function(row){
+          logI.push({
+            ts: row['Timestamp']||'', jenis:'complaint',
+            tgl: row['Tanggal']||'', jam: row['Jam']||'',
+            teknisi: row['Personil']||'', unit: row['Nomor Unit']||'',
+            kategoriKeluhan: row['Kategori Keluhan']||'',
+            deskripsi: row['Deskripsi']||'', kondisi: row['Status']||'',
+            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
+            catatan: row['Catatan']||''
+          });
+        });
+      }
+      if(d.renovasi && d.renovasi.length){
+        d.renovasi.forEach(function(row){
+          logI.push({
+            ts: row['Timestamp']||'', jenis:'renovasi',
+            tgl: row['Tanggal']||'', jam: row['Jam']||'',
+            teknisi: row['Personil']||'', unit: row['Nomor Unit']||'',
+            picUnit: row['PIC / Pemilik']||'',
+            deskripsi: row['Jenis Pekerjaan']||'',
+            kondisi: row['Status']||'', targetSelesai: row['Target Selesai']||'',
+            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
+            catatan: row['Catatan']||''
+          });
+        });
+      }
+      if(logI.length > 0){
+        LOG_I = logI;
+        localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+      }
+
+      // ---- Vendor → LOG_V ----
+      if(d.vendor && d.vendor.length){
+        LOG_V = d.vendor.map(function(row){
+          return {
+            ts: row['Timestamp']||'', jenis:'vendor',
+            tgl: row['Tanggal']||'', jam: row['Jam']||'',
+            kat: row['Kategori Vendor']||'',
+            perusahaan: row['Perusahaan Vendor']||'',
+            teknisiVendor: row['Teknisi Vendor']||'',
+            verifikasi: row['Diverifikasi Oleh']||'',
+            kondisi: row['Kondisi']||'',
+            checks: row['Checklist'] ? row['Checklist'].toString().split(' | ') : [],
+            catatan: row['Catatan']||''
+          };
+        });
+        localStorage.setItem('pm_vendor_v1', JSON.stringify(LOG_V));
+      }
+
+      // ---- SP Master ----
+      if(d.sp_master && d.sp_master.length){
+        var spItems = d.sp_master.map(function(row){
+          return {
+            id: row['ID Item']||'', nama: row['Nama Item']||'',
+            kategori: row['Kategori']||'',
+            stok: parseInt(row['Stok Terkini'])||0,
+            satuan: row['Satuan']||'pcs',
+            min: parseInt(row['Stok Minimum'])||3,
+            lokasi: row['Lokasi Simpan']||'-'
+          };
+        });
+        if(spItems.length > 0){
+          SP_ITEMS = spItems;
+          localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+        }
+      }
+
+      // ---- SP Log ----
+      if(d.sp_pakai && d.sp_pakai.length){
+        SP_LOG = d.sp_pakai.map(function(row){
+          return {
+            ts: row['Timestamp']||'', type:'pakai',
+            tgl: row['Tanggal']||'', nama: row['Nama Item']||'',
+            kategori: row['Kategori']||'',
+            jumlah: parseInt(row['Jumlah Pakai'])||0,
+            satuan: row['Satuan']||'',
+            stokSisa: parseInt(row['Stok Sisa'])||0,
+            untuk: row['Dipakai Untuk']||'',
+            teknisi: row['Personil']||''
+          };
+        });
+        localStorage.setItem('sp_log_v1', JSON.stringify(SP_LOG));
+      }
+
+      // ---- Agenda ----
+      if(d.agenda && d.agenda.length){
+        LOG_AG = d.agenda.map(function(row){
+          return {
+            id: row['ID']||'', ts: row['Timestamp']||'',
+            tgl: row['Tanggal']||'', prio: row['Prioritas']||'',
+            pic: row['PIC']||'', lokasi: row['Lokasi']||'-',
+            desc: row['Keterangan']||'', status: row['Status']||'Pending',
+            tglSelesai: row['Tgl Selesai']||''
+          };
+        });
+        localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+      }
+
+      // ---- Work Plan ----
+      if(d.workplan && d.workplan.length){
+        LOG_WP = d.workplan.map(function(row){
+          return {
+            id: row['ID']||'', ts: row['Timestamp']||'',
+            nama: row['Nama Pekerjaan']||'', kat: row['Kategori']||'',
+            prio: row['Prioritas']||'',
+            bln: parseInt(row['Bulan'])||1,
+            thn: parseInt(row['Tahun'])||2026,
+            pic: row['PIC']||'-',
+            biaya: parseInt(row['Estimasi Biaya'])||0,
+            status: row['Status']||'Direncanakan',
+            expired: row['Expired']!=='-'?row['Expired']:'',
+            notif: parseInt(row['Notif Hari'])||30,
+            ket: row['Keterangan']||'-'
+          };
+        });
+        localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+      }
+
+      updateSheetsStatus(true);
+
+      // Re-render semua
+      if(typeof renderDash==='function') renderDash();
+      if(typeof renderRiwayat==='function') renderRiwayat();
+      if(typeof renderAgenda==='function') renderAgenda();
+      if(typeof renderWP==='function') renderWP();
+      if(typeof renderJadwal==='function') renderJadwal();
+      if(typeof renderLapBulanan==='function') renderLapBulanan();
+      if(typeof renderSpSummary==='function') renderSpSummary();
+
+      console.log('Data berhasil disync dari Sheets');
+    })
+    .catch(function(err){
+      syncInProgress = false;
+      updateSheetsStatus(false);
+      console.warn('Sync dari Sheets gagal:', err.message);
+    });
+}
+
+// Auto sync saat pertama buka
+function initSync(){
+  loadFromSheets();
+  // Auto sync setiap 5 menit
+  setInterval(loadFromSheets, 5 * 60 * 1000);
+}
+
+
+// ===================== LOGIN =====================
+var MMS_USERS = {
+  'syukril':   { pass: 'mra2026',  nama: 'Syukril',  role: 'supervisor' },
+  'solaeman':  { pass: 'mra2026',  nama: 'Solaeman', role: 'foreman' },
+  'admin':     { pass: 'admin123', nama: 'Admin',     role: 'admin' }
+};
+
+function doLogin(){
+  var user = (document.getElementById('login-user').value||'').trim().toLowerCase();
+  var pass = document.getElementById('login-pass').value||'';
+  var errEl = document.getElementById('login-error');
+
+  if(!MMS_USERS[user] || MMS_USERS[user].pass !== pass){
+    errEl.textContent = '❌ Username atau password salah';
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+
+  // Save session
+  sessionStorage.setItem('mms_user', JSON.stringify({ user, nama: MMS_USERS[user].nama, role: MMS_USERS[user].role }));
+  document.getElementById('login-overlay').style.display = 'none';
+
+  // Update header nama
+  var hNama = document.getElementById('header-user');
+  if(hNama) hNama.textContent = '👤 ' + MMS_USERS[user].nama;
+
+  // Start sync
+  setTimeout(initSync, 500);
+}
+
+function checkSession(){
+  var sess = sessionStorage.getItem('mms_user');
+  if(sess){
+    try {
+      var u = JSON.parse(sess);
+      document.getElementById('login-overlay').style.display = 'none';
+      var hNama = document.getElementById('header-user');
+      if(hNama) hNama.textContent = '👤 ' + u.nama;
+      return true;
+    } catch(e){}
+  }
+  return false;
+}
+
+function doLogout(){
+  sessionStorage.removeItem('mms_user');
+  location.reload();
+}
+
 // ===================== BOOT =====================
+if(!checkSession()){ /* wait for login */ }
 initFilters();renderDash();
 renderSpSummary();
 initFormI();
@@ -3319,6 +4515,7 @@ initLapV();renderLapV();
 // Init spare part month filter
 const spNow = new Date();
 document.getElementById('sp-f-log-bln').value = spNow.getFullYear()+'-'+String(spNow.getMonth()+1).padStart(2,'0');
+// Sync dari Sheets dipanggil setelah login
 </script>
 </body>
 </html>
