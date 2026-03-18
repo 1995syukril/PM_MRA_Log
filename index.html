@@ -1,110 +1,3 @@
-// ===================== GENERATE BULAN DEPAN =====================
-var SUPERVISOR_LIST = ['Syukril', 'Solaeman'];
-var TIM_LAPANGAN = ['Ilham', 'Joko', 'Nanang', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Aris', 'Sumartono'];
-var POLA_ROTASI = ['P', 'P', 'S1', 'S', 'M', 'M', '-', '-'];
-
-// Starting offsets per orang (berdasarkan April 2026 hari pertama)
-var POLA_START_OFFSETS = {
-  'Ilham': 0, 'Joko': 7, 'Nanang': 6, 'Ridwan Naufal': 5,
-  'Sakim': 4, 'Dasrul': 3, 'Aris': 2, 'Sumartono': 1
-};
-
-// Bulan referensi awal (April 2026)
-var POLA_REF_MONTH = 4;
-var POLA_REF_YEAR  = 2026;
-
-function countActiveShifts(shifts, thn, bln) {
-  // Hitung shift aktual (bukan cuti, bukan libur nasional, bukan off)
-  var count = 0;
-  shifts.forEach(function(s, idx) {
-    var tgl = idx + 1;
-    if (isLiburNasional(thn, bln, tgl)) return; // libur tidak geser pola
-    if (s && s !== '' && s !== '-' && s !== 'C') count++;
-  });
-  return count;
-}
-
-function getPolaOffset(nama, targetThn, targetBln) {
-  // Hitung total shift dari bulan referensi sampai bulan target
-  var startOffset = POLA_START_OFFSETS[nama] || 0;
-  var totalShifts = 0;
-
-  var curThn = POLA_REF_YEAR;
-  var curBln = POLA_REF_MONTH;
-
-  while (curThn < targetThn || (curThn === targetThn && curBln < targetBln)) {
-    var key = curThn + '-' + curBln;
-    var data = LOG_JADWAL[key];
-    if (data && data[nama]) {
-      totalShifts += countActiveShifts(data[nama], curThn, curBln);
-    }
-    curBln++;
-    if (curBln > 12) { curBln = 1; curThn++; }
-  }
-
-  return (startOffset + totalShifts) % 8;
-}
-
-function generateBulanDepan(){
-  var bln = parseInt(document.getElementById('jd-bln').value);
-  var thn = parseInt(document.getElementById('jd-thn').value);
-  var key = getJadwalKey();
-  var currentData = LOG_JADWAL[key];
-
-  if(!currentData || Object.keys(currentData).length === 0){
-    alert('Belum ada jadwal untuk bulan ini. Input jadwal bulan ini dulu.'); return;
-  }
-
-  var nextBln = bln === 12 ? 1 : bln + 1;
-  var nextThn = bln === 12 ? thn + 1 : thn;
-  var nextDays = getDaysInMonth(nextThn, nextBln);
-  var nextKey = nextThn + '-' + nextBln;
-  var BLN_NAMES = ['','Januari','Februari','Maret','April','Mei','Juni',
-                   'Juli','Agustus','September','Oktober','November','Desember'];
-
-  if(LOG_JADWAL[nextKey] && Object.keys(LOG_JADWAL[nextKey]).length > 0){
-    if(!confirm('Jadwal ' + BLN_NAMES[nextBln] + ' ' + nextThn + ' sudah ada. Timpa?')) return;
-  }
-
-  var newData = {};
-
-  // === SYUKRIL & SOLAEMAN: P Senin-Jumat, S1 Sabtu, - Minggu/libur ===
-  SUPERVISOR_LIST.forEach(function(nama){
-    var shifts = [];
-    for(var d = 1; d <= nextDays; d++){
-      var dayOfWeek = new Date(nextThn, nextBln-1, d).getDay();
-      var libur = isLiburNasional(nextThn, nextBln, d);
-      if(libur || dayOfWeek === 0) shifts.push('-');
-      else if(dayOfWeek === 6) shifts.push('S1');
-      else shifts.push('P');
-    }
-    newData[nama] = shifts;
-  });
-
-  // === TIM LAPANGAN: rotasi pola P P S1 S M M - - ===
-  TIM_LAPANGAN.forEach(function(nama){
-    var polaIdx = getPolaOffset(nama, nextThn, nextBln);
-    var shifts = [];
-    for(var d = 1; d <= nextDays; d++){
-      var libur = isLiburNasional(nextThn, nextBln, d);
-      var dayOfWeek = new Date(nextThn, nextBln-1, d).getDay();
-      if(libur) {
-        shifts.push('-'); // libur nasional = libur, pola tidak bergeser
-      } else {
-        shifts.push(POLA_ROTASI[polaIdx % 8]);
-        polaIdx++;
-      }
-    }
-    newData[nama] = shifts;
-  });
-
-  LOG_JADWAL[nextKey] = newData;
-  localStorage.setItem('pm_jadwal_v1', JSON.stringify(LOG_JADWAL));
-  document.getElementById('jd-bln').value = nextBln;
-  document.getElementById('jd-thn').value = nextThn;
-  renderJadwal();
-  showToast('Jadwal ' + BLN_NAMES[nextBln] + ' ' + nextThn + ' berhasil digenerate!', 'vendor');
-}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1384,7 +1277,7 @@ const CHECKLIST_MAP = {"EQ001": ["Cek kelancaran putaran fan (tidak ada getaran 
 // GOOGLE SHEETS INTEGRATION
 // Ganti URL di bawah dengan Web App URL dari Apps Script Anda
 // ============================================================
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwtJpHBfo_X0a_8Y-BiggA5KX9UeuXIcAJcmJ1GvfvIGriPJwvvDVnCwqh4B8Z94M8w/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyjcoXfitIWxvSEbHEh7ZAaYbgKD7QSN_7i-rStZ-cTAbPjIrGWBC-J8uerlAtxPgN5/exec';
 
 async function sendToSheets(data) {
   if (!SHEETS_URL || SHEETS_URL === 'GANTI_DENGAN_URL_APPS_SCRIPT_ANDA') {
