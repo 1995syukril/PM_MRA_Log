@@ -247,15 +247,20 @@ function showTab(id, btn, isVendor){
 <body>
 <header>
   <div class="hl">
-    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div><div style="display:flex;align-items:center;gap:8px"><span id="sync-indicator" style="font-family:var(--mono);font-size:9px;color:var(--ok);cursor:pointer" onclick="syncFromSheets()" title="Klik untuk sync ulang">● Sheets: Terhubung</span><span id="header-user" style="font-family:var(--mono);font-size:10px;color:#b5860d"></span><button onclick="doLogout()" style="background:none;border:1px solid #555;color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;cursor:pointer">KELUAR</div>
+    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="header-user" style="font-family:var(--mono);font-size:10px;color:#b5860d"></span>
+      <button onclick="doLogout()" style="background:none;border:1px solid #555;color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;cursor:pointer">KELUAR</button>
+    </div>
     <div class="hbadge">PM SYSTEM</div>
   </div>
   <div class="hright">
     <div id="clock">--:--</div>
     <div id="tgl" style="margin-top:2px"></div>
-    <div id="sheets-status" style="margin-top:4px;font-size:9px;display:flex;align-items:center;gap:4px;justify-content:flex-end">
+    <div id="sheets-status" style="margin-top:4px;font-size:9px;display:flex;align-items:center;gap:4px;justify-content:flex-end;cursor:pointer" onclick="syncFromSheets()" title="Klik untuk sync ulang">
       <span id="sheets-dot" style="width:7px;height:7px;border-radius:50%;background:#555;display:inline-block"></span>
       <span id="sheets-label">Sheets: —</span>
+      <span id="sync-indicator" style="display:none"></span>
     </div>
   </div>
 </header>
@@ -4128,9 +4133,15 @@ checkSession();
 async function syncFromSheets() {
   if (!SHEETS_URL || SHEETS_URL === 'GANTI_DENGAN_URL_APPS_SCRIPT_ANDA') return;
 
-  // Tampilkan indikator sync
-  var indEl = document.getElementById('sync-indicator');
-  if (indEl) { indEl.textContent = '🔄 Syncing...'; indEl.style.color = 'var(--warn)'; }
+  const dot = document.getElementById('sheets-dot');
+  const lbl = document.getElementById('sheets-label');
+
+  function setStatus(icon, text, color) {
+    if (dot) dot.style.background = color;
+    if (lbl) lbl.textContent = text;
+  }
+
+  setStatus('', '🔄 Syncing...', '#f59e0b');
 
   try {
     const res = await fetch(SHEETS_URL + '?action=load', { redirect: 'follow' });
@@ -4232,17 +4243,14 @@ async function syncFromSheets() {
     if (typeof renderDash === 'function') renderDash();
     if (typeof renderRiwayat === 'function') renderRiwayat();
 
-    if (indEl) {
-      indEl.textContent = added > 0 ? '✅ Synced +' + added + ' data' : '✅ Up to date';
-      indEl.style.color = 'var(--ok)';
-      setTimeout(function(){ indEl.textContent = '● Sheets: Terhubung'; indEl.style.color = 'var(--ok)'; }, 3000);
-    }
+    setStatus('', added > 0 ? '● Sheets: +' + added + ' data' : '● Sheets: Terhubung', '#22c55e');
+    setTimeout(function(){ setStatus('', '● Sheets: Terhubung', '#22c55e'); }, 3000);
 
     console.log('[Sync] Selesai, ' + added + ' data baru dari Sheets');
 
   } catch(err) {
     console.warn('[Sync] Gagal:', err);
-    if (indEl) { indEl.textContent = '⚠️ Sync gagal'; indEl.style.color = 'var(--danger)'; }
+    setStatus('', '● Sheets: Gagal', '#ef4444');
   }
 }
 
