@@ -247,7 +247,7 @@ function showTab(id, btn, isVendor){
 <body>
 <header>
   <div class="hl">
-    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div><div style="display:flex;align-items:center;gap:8px"><span id="header-user" style="font-family:var(--mono);font-size:10px;color:#b5860d"></span><button onclick="doLogout()" style="background:none;border:1px solid #555;color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;cursor:pointer">KELUAR</div>
+    <div class="hlogo">🏢 <span>MAINTENANCE MANAGEMENT SYSTEM</span><br><span style="color:#888;font-size:9px">MENTENG REGENCY APARTEMEN · 2026</span></div><div style="display:flex;align-items:center;gap:8px"><span id="sync-indicator" style="font-family:var(--mono);font-size:9px;color:var(--ok);cursor:pointer" onclick="syncFromSheets()" title="Klik untuk sync ulang">● Sheets: Terhubung</span><span id="header-user" style="font-family:var(--mono);font-size:10px;color:#b5860d"></span><button onclick="doLogout()" style="background:none;border:1px solid #555;color:#888;font-family:var(--mono);font-size:9px;padding:2px 8px;cursor:pointer">KELUAR</div>
     <div class="hbadge">PM SYSTEM</div>
   </div>
   <div class="hright">
@@ -1402,8 +1402,8 @@ function showTab(id,btn,isVendor){
   if(lbBln) lbBln.value=d.getMonth()+1;
   if(lbThn) lbThn.value=d.getFullYear();
   renderLapBulanan();
-  if(id==='lap-internal'){ initLapI(); renderLapI(); }
-  if(id==='lap-vendor'){ initLapV(); renderLapV(); }
+  if(id==='lap-internal') renderLapI();
+  if(id==='lap-vendor') renderLapV();
 }
 
 // ===================== INIT FILTERS =====================
@@ -1781,7 +1781,7 @@ function renderRiwayat(){
   const fT=document.getElementById('rv-tek').value;
   const fKond=document.getElementById('rv-kondisi').value;
 
-  let all=[...LOG_I.map((d,i)=>({...d,_type:'internal',_origIdx:i})),...LOG_V.map((d,i)=>({...d,_type:'vendor',_origIdx:i}))];
+  let all=[...LOG_I.map(d=>({...d,_type:'internal'})),...LOG_V.map((d,i)=>({...d,_type:'vendor',_origIdx:i}))];
   all.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
 
   if(fJ)all=all.filter(d=>d._type===fJ);
@@ -1830,13 +1830,6 @@ function renderRiwayat(){
       if(jt==='complaint') meta2 = `📍 Unit ${d.unit} · 🔖 ${d.kategoriKeluhan||''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else if(jt==='renovasi') meta2 = `📍 Unit ${d.unit}${d.picUnit?' · 👤 '+d.picUnit:''}${d.targetSelesai?' · 🗓️ Target: '+fmt(d.targetSelesai):''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else meta2 = `📍 ${d.lokasi||''} · ${d.kategori||''}`;
-      const updateBtn = (jt==='complaint'||jt==='renovasi') ? `
-        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-          <span style="font-family:var(--mono);font-size:9px;color:var(--text2);align-self:center">UPDATE STATUS:</span>
-          ${['Tindak Lanjut','Proses','Selesai'].map(s=>`
-            <button onclick="updateStatusLog(${d._origIdx},'${s}')" style="font-family:var(--mono);font-size:9px;padding:3px 8px;cursor:pointer;border:1px solid var(--border);background:${d.kondisi===s?'var(--accent)':'var(--bg2)'};color:${d.kondisi===s?'#fff':'var(--text)'};border-radius:3px">${s}</button>
-          `).join('')}
-        </div>` : '';
       return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}">
         <div class="hih">
           <div>
@@ -1848,7 +1841,6 @@ function renderRiwayat(){
         </div>
         ${d.checks?.length?`<div class="hicl">${d.checks.map(c=>`<span class="cchip">✓ ${c}</span>`).join('')}</div>`:''}
         ${d.catatan?`<div style="margin-top:6px;font-size:12px;color:var(--text2);padding:7px;background:var(--bg2)">📌 ${d.catatan}</div>`:''}
-        ${updateBtn}
       </div>`;
     }
   }).join('');
@@ -2430,25 +2422,6 @@ function cetakPengajuan(){
 
 
 // ===================== EDIT / HAPUS VENDOR LOG =====================
-function updateStatusLog(idx, statusBaru) {
-  if(!LOG_I[idx]) return;
-  LOG_I[idx].kondisi = statusBaru;
-  localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
-
-  // Kirim update ke Sheets
-  const d = LOG_I[idx];
-  const payload = Object.assign({}, d, {
-    type: d.jobType || d.jenis || 'complaint',
-    kondisi: statusBaru,
-    fotoUrls: d.fotoUrls || '-'
-  });
-  sendToSheets(payload).catch(e => console.warn('Gagal sync status:', e));
-
-  showToast('✅ Status diupdate: ' + statusBaru, 'internal');
-  renderRiwayat();
-  renderDash();
-}
-
 function hapusVendorLog(idx){
   if(!confirm('Hapus data vendor ini? Tidak bisa dibatalkan.')) return;
   LOG_V.splice(idx, 1);
@@ -2749,7 +2722,7 @@ function renderLapBulanan(){
   var namaBulan = getNamaBulan(bln);
 
   // === PM RUTIN ===
-  var pmData = LOG_I.filter(function(d){ return (d.jobType==='pm'||(!d.jobType&&d.jenis==='pm')) && inBulan(d.tgl,bln,thn); });
+  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inBulan(d.tgl,bln,thn); });
   var pmTotal = EQUIPMENT_DATA.length;
   var pmDone  = {};
   pmData.forEach(function(d){ if(d.id) pmDone[d.id]=true; });
@@ -2776,7 +2749,7 @@ function renderLapBulanan(){
   var topPersonil = Object.keys(personilCount).sort(function(a,b){ return personilCount[b]-personilCount[a]; })[0]||'-';
 
   // === COMPLAINT ===
-  var cData = LOG_I.filter(function(d){ return (d.jobType==='complaint'||d.jenis==='complaint') && inBulan(d.tgl,bln,thn); });
+  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inBulan(d.tgl,bln,thn); });
   var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
   var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
@@ -3035,7 +3008,7 @@ function renderLapBulanan(){
   }
 
   // ---- PM ----
-  var pmData = LOG_I.filter(function(d){ return (d.jobType==='pm'||(!d.jobType&&d.jenis==='pm')) && inPeriod(d.tgl); });
+  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inPeriod(d.tgl); });
   var totalEq = EQUIPMENT_DATA.length;
   var pmSelesai = pmData.length;
   var pmByPIC = {};
@@ -3046,7 +3019,7 @@ function renderLapBulanan(){
   var pmTopPIC = Object.keys(pmByPIC).sort(function(a,b){return pmByPIC[b]-pmByPIC[a];}).slice(0,3);
 
   // ---- COMPLAINT ----
-  var cData = LOG_I.filter(function(d){ return (d.jobType==='complaint'||d.jenis==='complaint') && inPeriod(d.tgl); });
+  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inPeriod(d.tgl); });
   var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
   var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
@@ -3055,7 +3028,7 @@ function renderLapBulanan(){
   var cTopKat = Object.keys(cByKat).sort(function(a,b){return cByKat[b]-cByKat[a];}).slice(0,3);
 
   // ---- RENOVASI ----
-  var rvData = LOG_I.filter(function(d){ return (d.jobType==='renovasi'||d.jenis==='renovasi') && inPeriod(d.tgl); });
+  var rvData = LOG_I.filter(function(d){ return d.jenis==='renovasi' && inPeriod(d.tgl); });
   var rvSelesai = rvData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var rvProses  = rvData.filter(function(d){ return d.kondisi!=='Selesai'; }).length;
 
@@ -4148,4 +4121,139 @@ function generateBulanDepan(){
 
 // Mark app ready & flush pending calls
 checkSession();
+
+// ============================================================
+// SYNC DUA ARAH — Load data dari Google Sheets
+// ============================================================
+async function syncFromSheets() {
+  if (!SHEETS_URL || SHEETS_URL === 'GANTI_DENGAN_URL_APPS_SCRIPT_ANDA') return;
+
+  // Tampilkan indikator sync
+  var indEl = document.getElementById('sync-indicator');
+  if (indEl) { indEl.textContent = '🔄 Syncing...'; indEl.style.color = 'var(--warn)'; }
+
+  try {
+    const res = await fetch(SHEETS_URL + '?action=load', { redirect: 'follow' });
+    const json = await res.json();
+    if (json.status !== 'ok' || !json.data) throw new Error('Response tidak valid');
+
+    const d = json.data;
+
+    // === Merge PM, Complaint, Renovasi ke LOG_I ===
+    const existing = new Set(LOG_I.map(function(x){ return x.ts + '|' + (x.tgl||''); }));
+    var added = 0;
+
+    // PM
+    (d.pm || []).forEach(function(row) {
+      const key = (row['Timestamp']||'') + '|' + (row['Tanggal']||'');
+      if (!existing.has(key)) {
+        LOG_I.unshift({
+          ts: row['Timestamp'] || new Date().toISOString(),
+          jenis: 'internal', jobType: 'pm',
+          tgl: row['Tanggal'], jam: row['Jam'],
+          teknisi: row['Personil'], id: row['ID Equipment'],
+          nama: row['Nama Equipment'], kategori: row['Kategori'],
+          lokasi: row['Lokasi'], frekuensi: row['Frekuensi'],
+          kondisi: row['Kondisi'],
+          checks: row['Checklist'] ? row['Checklist'].split(' | ') : [],
+          catatan: row['Catatan'], fotoUrls: row['Foto'],
+          _fromSheets: true
+        });
+        existing.add(key);
+        added++;
+      }
+    });
+
+    // Complaint
+    (d.complaint || []).forEach(function(row) {
+      const key = (row['Timestamp']||'') + '|' + (row['Tanggal']||'');
+      if (!existing.has(key)) {
+        LOG_I.unshift({
+          ts: row['Timestamp'] || new Date().toISOString(),
+          jenis: 'internal', jobType: 'complaint',
+          tgl: row['Tanggal'], jam: row['Jam'],
+          teknisi: row['Personil'], unit: row['Nomor Unit'],
+          kategoriKeluhan: row['Kategori Keluhan'],
+          deskripsi: row['Deskripsi'], kondisi: row['Status'],
+          nama: 'Complaint ' + (row['Kategori Keluhan']||'') + ' — Unit ' + (row['Nomor Unit']||''),
+          checks: row['Checklist'] ? row['Checklist'].split(' | ') : [],
+          catatan: row['Catatan'], fotoUrls: row['Foto'],
+          _fromSheets: true
+        });
+        existing.add(key);
+        added++;
+      }
+    });
+
+    // Renovasi
+    (d.renovasi || []).forEach(function(row) {
+      const key = (row['Timestamp']||'') + '|' + (row['Tanggal']||'');
+      if (!existing.has(key)) {
+        LOG_I.unshift({
+          ts: row['Timestamp'] || new Date().toISOString(),
+          jenis: 'internal', jobType: 'renovasi',
+          tgl: row['Tanggal'], jam: row['Jam'],
+          teknisi: row['Personil'], unit: row['Nomor Unit'],
+          picUnit: row['PIC / Pemilik'], deskripsi: row['Jenis Pekerjaan'],
+          kondisi: row['Status'], targetSelesai: row['Target Selesai'],
+          nama: 'Renovasi Unit ' + (row['Nomor Unit']||''),
+          checks: row['Checklist'] ? row['Checklist'].split(' | ') : [],
+          catatan: row['Catatan'], fotoUrls: row['Foto'],
+          _fromSheets: true
+        });
+        existing.add(key);
+        added++;
+      }
+    });
+
+    // === Merge Vendor ke LOG_V ===
+    const existingV = new Set(LOG_V.map(function(x){ return (x.ts||'') + '|' + (x.tgl||''); }));
+    (d.vendor || []).forEach(function(row) {
+      const key = (row['Timestamp']||'') + '|' + (row['Tanggal']||'');
+      if (!existingV.has(key)) {
+        LOG_V.unshift({
+          ts: row['Timestamp'] || new Date().toISOString(),
+          jenis: 'vendor', tgl: row['Tanggal'], jam: row['Jam'],
+          kat: row['Kategori Vendor'], perusahaan: row['Perusahaan Vendor'],
+          teknisiVendor: row['Teknisi Vendor'], verifikasi: row['Diverifikasi Oleh'],
+          kondisi: row['Kondisi'],
+          checks: row['Checklist'] ? row['Checklist'].split(' | ') : [],
+          catatan: row['Catatan'], _fromSheets: true
+        });
+        existingV.add(key);
+      }
+    });
+
+    // Simpan ke localStorage
+    localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+    localStorage.setItem('pm_vendor_v1', JSON.stringify(LOG_V));
+
+    // Refresh UI
+    if (typeof renderDash === 'function') renderDash();
+    if (typeof renderRiwayat === 'function') renderRiwayat();
+
+    if (indEl) {
+      indEl.textContent = added > 0 ? '✅ Synced +' + added + ' data' : '✅ Up to date';
+      indEl.style.color = 'var(--ok)';
+      setTimeout(function(){ indEl.textContent = '● Sheets: Terhubung'; indEl.style.color = 'var(--ok)'; }, 3000);
+    }
+
+    console.log('[Sync] Selesai, ' + added + ' data baru dari Sheets');
+
+  } catch(err) {
+    console.warn('[Sync] Gagal:', err);
+    if (indEl) { indEl.textContent = '⚠️ Sync gagal'; indEl.style.color = 'var(--danger)'; }
+  }
+}
+
+// Jalankan sync otomatis saat login
+document.addEventListener('app-ready', function(){
+  setTimeout(syncFromSheets, 1000);
+});
+
+// Sync juga saat checkSession (refresh browser)
+(function(){
+  var sess = sessionStorage.getItem('mms_user');
+  if (sess) setTimeout(syncFromSheets, 1500);
+})();
 </script>
