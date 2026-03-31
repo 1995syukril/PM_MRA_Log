@@ -1402,8 +1402,8 @@ function showTab(id,btn,isVendor){
   if(lbBln) lbBln.value=d.getMonth()+1;
   if(lbThn) lbThn.value=d.getFullYear();
   renderLapBulanan();
-  if(id==='lap-internal') renderLapI();
-  if(id==='lap-vendor') renderLapV();
+  if(id==='lap-internal'){ initLapI(); renderLapI(); }
+  if(id==='lap-vendor'){ initLapV(); renderLapV(); }
 }
 
 // ===================== INIT FILTERS =====================
@@ -2722,7 +2722,7 @@ function renderLapBulanan(){
   var namaBulan = getNamaBulan(bln);
 
   // === PM RUTIN ===
-  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inBulan(d.tgl,bln,thn); });
+  var pmData = LOG_I.filter(function(d){ return (d.jobType==='pm'||d.jenis==='pm') && inBulan(d.tgl,bln,thn); });
   var pmTotal = EQUIPMENT_DATA.length;
   var pmDone  = {};
   pmData.forEach(function(d){ if(d.id) pmDone[d.id]=true; });
@@ -2749,7 +2749,7 @@ function renderLapBulanan(){
   var topPersonil = Object.keys(personilCount).sort(function(a,b){ return personilCount[b]-personilCount[a]; })[0]||'-';
 
   // === COMPLAINT ===
-  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inBulan(d.tgl,bln,thn); });
+  var cData = LOG_I.filter(function(d){ return (d.jobType==='complaint'||d.jenis==='complaint') && inBulan(d.tgl,bln,thn); });
   var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
   var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
@@ -3008,7 +3008,7 @@ function renderLapBulanan(){
   }
 
   // ---- PM ----
-  var pmData = LOG_I.filter(function(d){ return d.jenis==='pm' && inPeriod(d.tgl); });
+  var pmData = LOG_I.filter(function(d){ return (d.jobType==='pm'||d.jenis==='pm') && inPeriod(d.tgl); });
   var totalEq = EQUIPMENT_DATA.length;
   var pmSelesai = pmData.length;
   var pmByPIC = {};
@@ -3019,7 +3019,7 @@ function renderLapBulanan(){
   var pmTopPIC = Object.keys(pmByPIC).sort(function(a,b){return pmByPIC[b]-pmByPIC[a];}).slice(0,3);
 
   // ---- COMPLAINT ----
-  var cData = LOG_I.filter(function(d){ return d.jenis==='complaint' && inPeriod(d.tgl); });
+  var cData = LOG_I.filter(function(d){ return (d.jobType==='complaint'||d.jenis==='complaint') && inPeriod(d.tgl); });
   var cSelesai = cData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var cProses  = cData.filter(function(d){ return d.kondisi==='Proses'; }).length;
   var cTindak  = cData.filter(function(d){ return d.kondisi==='Tindak Lanjut'; }).length;
@@ -3028,7 +3028,7 @@ function renderLapBulanan(){
   var cTopKat = Object.keys(cByKat).sort(function(a,b){return cByKat[b]-cByKat[a];}).slice(0,3);
 
   // ---- RENOVASI ----
-  var rvData = LOG_I.filter(function(d){ return d.jenis==='renovasi' && inPeriod(d.tgl); });
+  var rvData = LOG_I.filter(function(d){ return (d.jobType==='renovasi'||d.jenis==='renovasi') && inPeriod(d.tgl); });
   var rvSelesai = rvData.filter(function(d){ return d.kondisi==='Selesai'; }).length;
   var rvProses  = rvData.filter(function(d){ return d.kondisi!=='Selesai'; }).length;
 
