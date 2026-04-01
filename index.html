@@ -2524,6 +2524,7 @@ function selesaiAgenda(idx){
   LOG_AG[idx].status = 'Selesai';
   LOG_AG[idx].tglSelesai = new Date().toLocaleDateString('id-ID');
   localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+  sendToSheets(Object.assign({}, LOG_AG[idx], {type:'agenda'}));
   showToast('Agenda ditandai selesai','internal');
   renderAgenda();
 }
@@ -4239,9 +4240,119 @@ async function syncFromSheets() {
     localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
     localStorage.setItem('pm_vendor_v1', JSON.stringify(LOG_V));
 
+    // === Sync AGENDA ===
+    const existingAG = new Set(LOG_AG.map(function(x){ return x.id||''; }));
+    (d.agenda || []).forEach(function(row) {
+      const id = row['ID']||'';
+      if (id && !existingAG.has(id)) {
+        LOG_AG.push({
+          id: id,
+          ts: row['Timestamp']||'',
+          tgl: row['Tanggal']||'',
+          prio: row['Prioritas']||'Sedang',
+          pic: row['PIC']||'',
+          lokasi: row['Lokasi']||'-',
+          desc: row['Keterangan']||'',
+          status: row['Status']||'Pending',
+          tglSelesai: row['Tgl Selesai']||'',
+          _fromSheets: true
+        });
+        existingAG.add(id);
+        added++;
+      }
+    });
+    localStorage.setItem('pm_agenda_v1', JSON.stringify(LOG_AG));
+
+    // === Sync WORKPLAN ===
+    const existingWP = new Set(LOG_WP.map(function(x){ return x.id||''; }));
+    (d.workplan || []).forEach(function(row) {
+      const id = row['ID']||'';
+      if (id && !existingWP.has(id)) {
+        LOG_WP.push({
+          id: id,
+          ts: row['Timestamp']||'',
+          nama: row['Nama Pekerjaan']||'',
+          kat: row['Kategori']||'',
+          prio: row['Prioritas']||'Sedang',
+          bln: row['Bulan']||'',
+          thn: row['Tahun']||'',
+          pic: row['PIC']||'',
+          biaya: row['Estimasi Biaya']||0,
+          status: row['Status']||'Pending',
+          expired: row['Expired']||'',
+          notif: row['Notif Hari']||30,
+          ket: row['Keterangan']||'',
+          _fromSheets: true
+        });
+        existingWP.add(id);
+        added++;
+      }
+    });
+    localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+
+    // === Sync SPARE PART MASTER ===
+    const existingSP = new Set(SP_ITEMS.map(function(x){ return x.id||''; }));
+    (d.sp_master || []).forEach(function(row) {
+      const id = row['ID Item']||'';
+      if (id && !existingSP.has(id)) {
+        SP_ITEMS.push({
+          id: id,
+          nama: row['Nama Item']||'',
+          kategori: row['Kategori']||'',
+          stok: parseFloat(row['Stok Terkini'])||0,
+          satuan: row['Satuan']||'',
+          min: parseFloat(row['Stok Minimum'])||3,
+          lokasi: row['Lokasi Simpan']||'',
+          _fromSheets: true
+        });
+        existingSP.add(id);
+        added++;
+      }
+    });
+    localStorage.setItem('sp_items_v1', JSON.stringify(SP_ITEMS));
+
+    // === Sync SP LOG PAKAI ===
+    const existingSPL = new Set(SP_LOG.map(function(x){ return (x.ts||'')+'|'+(x.nama||''); }));
+    (d.sp_pakai || []).forEach(function(row) {
+      const key = (row['Timestamp']||'')+'|'+(row['Nama Item']||'');
+      if (!existingSPL.has(key)) {
+        SP_LOG.push({
+          ts: row['Timestamp']||'', tgl: row['Tanggal']||'',
+          nama: row['Nama Item']||'', kategori: row['Kategori']||'',
+          jumlah: parseFloat(row['Jumlah Pakai'])||0,
+          satuan: row['Satuan']||'', stokSisa: row['Stok Sisa']||0,
+          untuk: row['Dipakai Untuk']||'', teknisi: row['Personil']||'',
+          _fromSheets: true
+        });
+        existingSPL.add(key);
+      }
+    });
+    localStorage.setItem('sp_log_v1', JSON.stringify(SP_LOG));
+
+    // === Sync SP RESTOCK ===
+    const existingSPR = new Set(SP_RESTOCK.map(function(x){ return (x.ts||'')+'|'+(x.nama||''); }));
+    (d.sp_restock || []).forEach(function(row) {
+      const key = (row['Timestamp']||'')+'|'+(row['Nama Item']||'');
+      if (!existingSPR.has(key)) {
+        SP_RESTOCK.push({
+          ts: row['Timestamp']||'', tgl: row['Tanggal']||'',
+          nama: row['Nama Item']||'', kategori: row['Kategori']||'',
+          jumlah: parseFloat(row['Jumlah Masuk'])||0,
+          satuan: row['Satuan']||'', stokSisa: row['Stok Sisa']||0,
+          keterangan: row['Keterangan']||'',
+          _fromSheets: true
+        });
+        existingSPR.add(key);
+      }
+    });
+    localStorage.setItem('sp_restock_v1', JSON.stringify(SP_RESTOCK));
+
     // Refresh UI
     if (typeof renderDash === 'function') renderDash();
     if (typeof renderRiwayat === 'function') renderRiwayat();
+    if (typeof renderAgenda === 'function') renderAgenda();
+    if (typeof renderWP === 'function') renderWP();
+    if (typeof renderSP === 'function') renderSP();
 
     setStatus('', added > 0 ? '● Sheets: +' + added + ' data' : '● Sheets: Terhubung', '#22c55e');
     setTimeout(function(){ setStatus('', '● Sheets: Terhubung', '#22c55e'); }, 3000);
