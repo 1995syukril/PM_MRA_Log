@@ -652,6 +652,63 @@ function showTab(id, btn, isVendor){
 <!-- ===== RIWAYAT ===== -->
 <section class="section" id="tab-riwayat">
   <div class="stitle">📋 RIWAYAT SEMUA PEKERJAAN PM</div>
+
+  <!-- Import Excel Banner -->
+  <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <button onclick="document.getElementById('importOpsBox').style.display=document.getElementById('importOpsBox').style.display==='none'?'block':'none'"
+      style="background:#1a3a5c;color:#fff;border:1px solid #2d6a9f;border-radius:6px;padding:7px 14px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:600;">
+      📥 IMPORT LAPORAN EXCEL
+    </button>
+    <span style="font-size:10px;color:var(--text2);">Upload file laporan bulanan → otomatis diklasifikasi PM/Complaint/Vendor/Renovasi</span>
+  </div>
+
+  <!-- Import Box -->
+  <div id="importOpsBox" style="display:none;background:var(--bg2,#f5f5f5);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;">
+    <div style="font-family:var(--mono);font-size:12px;font-weight:700;margin-bottom:8px;">📥 IMPORT SHEET OPERATION — FILE LAPORAN BULANAN</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">
+      ✅ Otomatis baca sheet <b>OPERATION</b> dari file Excel laporan bulanan<br>
+      ✅ Klasifikasi otomatis: PM Rutin · Handle Complaint · Vendor · Renovasi Unit<br>
+      ✅ Deteksi nomor unit dari deskripsi pekerjaan
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="file" id="importOpsFile" accept=".xlsx,.xls" style="display:none;" onchange="importOpsFromExcel(this)">
+      <button onclick="document.getElementById('importOpsFile').click()"
+        style="background:var(--accent,#2d6a9f);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:600;">
+        📂 PILIH FILE EXCEL
+      </button>
+      <span id="importOpsStatus" style="font-size:11px;color:var(--text2);"></span>
+    </div>
+    <!-- Preview table -->
+    <div id="importOpsPreview" style="display:none;margin-top:12px;">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:6px;" id="importOpsPreviewTitle"></div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;">
+        <table id="importOpsTable" style="width:100%;border-collapse:collapse;font-size:10px;">
+          <thead>
+            <tr style="background:#1a3a5c;color:#fff;position:sticky;top:0;">
+              <th style="padding:5px 8px;text-align:left;">Tanggal</th>
+              <th style="padding:5px 8px;text-align:left;">Kategori</th>
+              <th style="padding:5px 8px;">Unit</th>
+              <th style="padding:5px 8px;text-align:left;min-width:200px;">Deskripsi</th>
+              <th style="padding:5px 8px;text-align:left;">Dikerjakan Oleh</th>
+            </tr>
+          </thead>
+          <tbody id="importOpsBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <button onclick="confirmImportOps()"
+          style="background:#2d7a2d;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:700;">
+          ✅ SIMPAN SEMUA KE LOG
+        </button>
+        <button onclick="document.getElementById('importOpsPreview').style.display='none';document.getElementById('importOpsFile').value='';"
+          style="background:none;border:1px solid var(--border);border-radius:6px;padding:8px 14px;font-family:var(--mono);font-size:11px;cursor:pointer;">
+          ✕ BATAL
+        </button>
+        <span id="importOpsConfirmStatus" style="font-size:11px;color:var(--text2);"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="fbar">
     <select id="rv-jenis" onchange="renderRiwayat()">
       <option value="">Semua Pelaksana</option>
@@ -4375,4 +4432,211 @@ document.addEventListener('app-ready', function(){
   var sess = sessionStorage.getItem('mms_user');
   if (sess) setTimeout(syncFromSheets, 1500);
 })();
+
+// ═══════════════════════════════════════════════════
+// IMPORT LAPORAN EXCEL — OPERATION SHEET
+// ═══════════════════════════════════════════════════
+
+let _importOpsParsed = [];
+
+function classifyOpsImport(desc, isVendorSection) {
+  if (!desc) return 'PM Rutin';
+  const d = desc.toLowerCase();
+  if (isVendorSection) return 'Vendor';
+  const complaint = ['bocor','perbaikan','ganti','rusak','mampet','macet','complaint','complain',
+    'check bocor','aquaproof','seal','kran','kunci','lampu unit','water meter','lpg',
+    'jet shower','thermostat','kitchen hood','grease','greasetrap','closet','flek',
+    'kawat nyamuk','wastafel','tambal retakan','closet','handle pintu'];
+  const renovasi = ['renovasi','cat ulang','install baru','bongkar','pasang kunci baru'];
+  const pm = ['check list','checklist','pemanasan genset','kuras kolam','reinstal',
+    'trafo pompa','motor pintu gerbang','plafon area parkir','gardu cctv','tambal dak'];
+  if (renovasi.some(k => d.includes(k))) return 'Renovasi Unit';
+  if (complaint.some(k => d.includes(k))) return 'Handle Complaint';
+  if (pm.some(k => d.includes(k))) return 'PM Rutin';
+  if (/unit\s*\d{3}/i.test(desc)) return 'Handle Complaint';
+  return 'PM Rutin';
+}
+
+function extractUnitImport(desc) {
+  if (!desc) return '';
+  const m = desc.match(/unit\s*(\d{3,4})/i);
+  return m ? m[1] : '';
+}
+
+function cleanOlehImport(oleh) {
+  if (!oleh) return '';
+  return String(oleh).replace(/dikerjakan oleh/gi,'').trim().replace(/^,|,$/g,'').trim();
+}
+
+async function importOpsFromExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('importOpsStatus');
+  status.textContent = '⏳ Membaca file...';
+  _importOpsParsed = [];
+
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, {type:'array', cellDates:true});
+
+    // Find OPERATION sheet
+    const wsName = wb.SheetNames.find(n => n.toUpperCase().includes('OPERATION')) || wb.SheetNames[0];
+    const ws = wb.Sheets[wsName];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+    let isVendorSection = false;
+    let currentVendor = '';
+    const results = [];
+
+    rows.forEach((row, i) => {
+      const marker = String(row[3] || '').trim();
+      const desc   = String(row[4] || '').trim();
+      const tglRaw = row[11];
+      const oleh   = String(row[12] || '').trim();
+
+      // Detect vendor section
+      if (marker.toUpperCase().includes('VENDOR') || marker.toUpperCase().includes('PIHAK')) {
+        isVendorSection = true; return;
+      }
+      if (marker === '1. PEKERJAAN KHUSUS' || marker === '2.PEKERJAAN RUTIN') {
+        isVendorSection = false; return;
+      }
+
+      // Detect vendor company name
+      if (isVendorSection && !marker && desc && !tglRaw) {
+        currentVendor = desc; return;
+      }
+
+      if (!desc || desc.length < 5) return;
+      if (!tglRaw) return;
+
+      // Parse date
+      let tgl = '';
+      if (tglRaw instanceof Date) {
+        tgl = tglRaw.toISOString().slice(0,10);
+      } else if (tglRaw) {
+        tgl = String(tglRaw).slice(0,10);
+      }
+      if (!tgl || tgl === 'Invalid Date') return;
+
+      const kat  = classifyOpsImport(desc, isVendorSection);
+      const unit = extractUnitImport(desc);
+      const personil = cleanOlehImport(oleh) || (isVendorSection ? currentVendor : 'Crew Maintenance');
+
+      results.push({ tgl, kat, unit, desc, personil, isVendor: isVendorSection });
+    });
+
+    if (!results.length) {
+      status.textContent = '⚠️ Tidak ada data ditemukan di sheet OPERATION';
+      return;
+    }
+
+    _importOpsParsed = results;
+    status.textContent = `✅ Ditemukan ${results.length} pekerjaan dari sheet ${wsName}`;
+
+    // Show preview
+    const catCount = {};
+    results.forEach(r => catCount[r.kat] = (catCount[r.kat]||0)+1);
+    const summary = Object.entries(catCount).map(([k,v])=>`${k}: ${v}`).join(' · ');
+
+    document.getElementById('importOpsPreviewTitle').innerHTML =
+      `📋 Preview — ${results.length} pekerjaan &nbsp;|&nbsp; <span style="font-weight:normal;color:var(--text2)">${summary}</span>`;
+
+    const catColors = {
+      'PM Rutin':'#d0eaff','Handle Complaint':'#ffd0d0','Vendor':'#ead5fb','Renovasi Unit':'#fde8b0'
+    };
+
+    document.getElementById('importOpsBody').innerHTML = results.map(r => `
+      <tr style="background:${catColors[r.kat]||'#fff'};border-bottom:1px solid #ddd;">
+        <td style="padding:4px 8px;white-space:nowrap;">${r.tgl}</td>
+        <td style="padding:4px 8px;font-size:10px;white-space:nowrap;">${r.kat}</td>
+        <td style="padding:4px 8px;text-align:center;">${r.unit||'—'}</td>
+        <td style="padding:4px 8px;">${r.desc}</td>
+        <td style="padding:4px 8px;">${r.personil}</td>
+      </tr>`).join('');
+
+    document.getElementById('importOpsPreview').style.display = 'block';
+
+  } catch(e) {
+    status.textContent = '❌ Error: ' + e.message;
+    console.error(e);
+  }
+}
+
+async function confirmImportOps() {
+  if (!_importOpsParsed.length) return;
+  const confirmStatus = document.getElementById('importOpsConfirmStatus');
+  confirmStatus.textContent = '⏳ Menyimpan...';
+
+  let saved = 0;
+  for (const r of _importOpsParsed) {
+    // Build record compatible with LOG_I structure
+    if (r.isVendor) {
+      // Vendor record
+      const record = {
+        ts: new Date(r.tgl).toISOString(),
+        jenis: 'vendor',
+        tgl: r.tgl,
+        jam: '',
+        kat: 'AC', // default, bisa diubah
+        teknisiVendor: r.personil,
+        verifikasi: 'Syukril (Supervisor)',
+        kondisi: 'Normal',
+        checks: [],
+        catatan: r.desc,
+        nama: r.desc,
+        _imported: true
+      };
+      LOG_V.push(record);
+    } else {
+      // Internal record — complaint or PM
+      const record = {
+        ts: new Date(r.tgl).toISOString(),
+        jenis: 'internal',
+        jobType: r.kat === 'PM Rutin' ? 'pm' : r.kat === 'Handle Complaint' ? 'complaint' : 'renovasi',
+        tgl: r.tgl,
+        jam: '',
+        teknisi: r.personil,
+        checks: [],
+        catatan: r.desc,
+        kondisi: 'Normal',
+        nama: r.desc,
+        _imported: true
+      };
+      if (r.unit) {
+        record.unit = r.unit;
+        record.nama = (r.kat === 'Renovasi Unit' ? 'Renovasi' : 'Complaint') + ' Unit ' + r.unit;
+        record.deskripsi = r.desc;
+        record.kategoriKeluhan = 'Lain-lain';
+      }
+      LOG_I.push(record);
+    }
+    saved++;
+  }
+
+  // Save to localStorage
+  localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+  localStorage.setItem('pm_vendor_v1',   JSON.stringify(LOG_V));
+
+  // Try save to Sheets
+  try {
+    await sendToSheets({ action:'bulkImport', data: _importOpsParsed });
+  } catch(e) { console.warn('Sheet sync failed:', e); }
+
+  confirmStatus.textContent = `✅ ${saved} pekerjaan berhasil disimpan!`;
+
+  // Refresh riwayat
+  renderRiwayat();
+
+  // Close import box after 2 seconds
+  setTimeout(() => {
+    document.getElementById('importOpsBox').style.display = 'none';
+    document.getElementById('importOpsPreview').style.display = 'none';
+    document.getElementById('importOpsFile').value = '';
+    document.getElementById('importOpsStatus').textContent = '';
+    confirmStatus.textContent = '';
+    _importOpsParsed = [];
+  }, 2500);
+}
+
 </script>
