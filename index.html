@@ -1941,11 +1941,23 @@ function renderLapI(){
     <div class="scard nt" style="--text2:#7a3a00"><div class="slabel" style="color:#7a3a00">📢 Complaint</div><div class="sval" style="color:#c8520a;font-size:24px">${cmpCount}</div><div class="ssub">Tiket selesai</div></div>
     <div class="scard vendor"><div class="slabel">🏗️ Renovasi</div><div class="sval">${renCount}</div><div class="ssub">Unit dikerjakan</div></div>
     <div class="scard ok"><div class="slabel">Total Pekerjaan</div><div class="sval">${data.length}</div><div class="ssub">Semua jenis</div></div>`;
-  // Per teknisi summary
+  // Per teknisi summary — pecah kombinasi nama jadi individual
   const tekSum={};
-  data.forEach(d=>{tekSum[d.teknisi]=(tekSum[d.teknisi]||0)+1;});
+  const KNOWN_NAMES = ['Syukril','Solaeman','Sumartono','Joko','Dasrul','Naufal','Ilham','Sakim','Aris','Nanang','Crew Maintenance','crew maintenance'];
+  data.forEach(d=>{
+    const raw = d.teknisi || '';
+    // Pecah berdasarkan kata sambung: dan, &, |, +, koma
+    const parts = raw.split(/\s*(?:dan|&|\||\+|,)\s*/i).map(s=>s.trim()).filter(Boolean);
+    parts.forEach(p=>{
+      // Cocokkan dengan nama yang dikenal, atau pakai as-is jika tidak dikenal
+      const matched = KNOWN_NAMES.find(n=>p.toLowerCase().includes(n.toLowerCase())) || p;
+      // Normalisasi nama
+      const name = matched === 'crew maintenance' || matched === 'Crew Maintenance' ? 'Crew Maintenance' : matched;
+      tekSum[name]=(tekSum[name]||0)+1;
+    });
+  });
   const tekHtml=Object.entries(tekSum).sort((a,b)=>b[1]-a[1])
-    .map(([t,n])=>`<span style="font-family:var(--mono);font-size:11px;margin:2px 8px 2px 0">👷 ${t}: <strong>${n}x</strong></span>`).join('');
+    .map(([t,n])=>`<span style="font-family:var(--mono);font-size:11px;margin:3px 6px 3px 0;display:inline-block;background:var(--bg2);padding:3px 8px;border-radius:4px;border:1px solid var(--border)">👷 ${t}: <strong>${n}x</strong></span>`).join('');
   const det=document.getElementById('li-det');
   if(!data.length){det.innerHTML='<div class="empty">Tidak ada data servis bulan ini.</div>';return;}
   let html='';
