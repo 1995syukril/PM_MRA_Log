@@ -1232,7 +1232,15 @@ function showTab(id, btn, isVendor){
         <option value="Ditunda">Ditunda</option>
       </select>
       <button class="btn bout bsm" onclick="cetakWP()">🖨️ Cetak PDF</button>
+      <label class="btn bout bsm" style="cursor:pointer;color:var(--ok)">
+        📥 Import Excel
+        <input type="file" id="wp-excel-file" accept=".xlsx,.xls" style="display:none" onchange="importWorkPlanExcel(this)">
+      </label>
+      <button class="btn bout bsm" onclick="downloadTemplateWP()" style="color:var(--vendor)">⬇️ Template Excel</button>
     </div>
+
+    <!-- Import status -->
+    <div id="wp-import-status" style="display:none;padding:10px 12px;margin-bottom:12px;font-family:var(--mono);font-size:11px;border:1px solid var(--border);background:var(--bg2)"></div>
 
     <!-- Summary cards -->
     <div id="wp-summary" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
@@ -4575,7 +4583,172 @@ async function importOpsFromExcel(input) {
   }
 }
 
-async function confirmImportOps() {
+// ===================== IMPORT EXCEL WORK PLAN =====================
+
+function downloadTemplateWP() {
+  if(typeof XLSX === 'undefined'){ alert('Library XLSX belum siap, coba refresh.'); return; }
+
+  var wb = XLSX.utils.book_new();
+  var header = ['NAMA_PEKERJAAN','KATEGORI','PRIORITAS','BULAN','TAHUN','PIC','ESTIMASI_BIAYA','KETERANGAN'];
+  var info = [
+    ['--- PETUNJUK PENGISIAN ---','','','','','','',''],
+    ['KATEGORI: Service Berkala | Renovasi / Penggantian | Upgrade Sistem | Sertifikasi | Lainnya','','','','','','',''],
+    ['PRIORITAS: Tinggi | Sedang | Rendah','','','','','','',''],
+    ['BULAN: 1-12 (angka) atau nama bulan (Januari, Februari, dst)','','','','','','',''],
+    ['TAHUN: 2026 atau 2027','','','','','','',''],
+    ['ESTIMASI_BIAYA: angka saja tanpa Rp (contoh: 500000)','','','','','','',''],
+    ['--- CONTOH DATA ---','','','','','','',''],
+    ['Service rutin AC area umum','Service Berkala','Tinggi',7,2026,'Vendor AC',0,'Service bulanan filter & freon'],
+    ['Perpanjangan sertifikasi lift','Sertifikasi','Tinggi',8,2026,'Syukril (Supervisor)',3000000,'Koordinasi Disnaker'],
+    ['Pengecatan koridor lt 2-4','Renovasi / Penggantian','Sedang',9,2026,'Solaeman (Foreman)',3000000,'Cat & material dari stok'],
+    ['Upgrade CCTV blind spot','Upgrade Sistem','Sedang',10,2026,'Syukril / Ilham',5000000,'Survey titik blind spot dulu'],
+    ['Pelatihan K3 seluruh tim','Lainnya','Tinggi',7,2026,'Syukril (Supervisor)',500000,'Fire drill & evakuasi'],
+  ];
+
+  var wsData = [header].concat(info);
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:45},{wch:25},{wch:10},{wch:10},{wch:8},{wch:25},{wch:16},{wch:40}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'WorkPlan');
+  XLSX.writeFile(wb, 'Template_WorkPlan_MRA.xlsx');
+}
+
+function importWorkPlanExcel(input) {
+  if(!input.files || !input.files[0]) return;
+  var statusEl = document.getElementById('wp-import-status');
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'var(--text2)';
+  statusEl.textContent = '⏳ Membaca file Excel...';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+      // Map bulan name to number
+      var blnMap = {
+        'januari':1,'februari':2,'maret':3,'april':4,'mei':5,'juni':6,
+        'juli':7,'agustus':8,'september':9,'oktober':10,'november':11,'desember':12
+      };
+
+      // Map kategori variations
+      var katMap = {
+        'service berkala':'Service Berkala',
+        'service':'Service Berkala',
+        'renovasi / penggantian':'Renovasi / Penggantian',
+        'renovasi':'Renovasi / Penggantian',
+        'penggantian':'Renovasi / Penggantian',
+        'upgrade sistem':'Upgrade Sistem',
+        'upgrade':'Upgrade Sistem',
+        'sertifikasi':'Sertifikasi',
+        'sertifikasi & legalitas':'Sertifikasi',
+        'legalitas':'Sertifikasi',
+        'lainnya':'Lainnya',
+        'lain-lain':'Lainnya'
+      };
+
+      var prioMap = {
+        'tinggi':'Tinggi','high':'Tinggi',
+        'sedang':'Sedang','medium':'Sedang',
+        'rendah':'Rendah','low':'Rendah'
+      };
+
+      var imported = 0, skipped = 0, errors = [];
+
+      rows.forEach(function(row, i) {
+        // Skip instruction/comment rows
+        var namaPek = String(row['NAMA_PEKERJAAN']||row['nama_pekerjaan']||row['Nama Pekerjaan']||row['nama']||'').trim();
+        if(!namaPek || namaPek.startsWith('---') || namaPek.length < 3) { skipped++; return; }
+
+        var katRaw  = String(row['KATEGORI']||row['kategori']||row['Kategori']||'').trim().toLowerCase();
+        var prioRaw = String(row['PRIORITAS']||row['prioritas']||row['Prioritas']||'').trim().toLowerCase();
+        var blnRaw  = row['BULAN']||row['bulan']||row['Bulan']||'';
+        var thnRaw  = row['TAHUN']||row['tahun']||row['Tahun']||2026;
+        var pic     = String(row['PIC']||row['pic']||row['PIC / PENANGGUNG JAWAB']||'-').trim();
+        var biaya   = parseInt(row['ESTIMASI_BIAYA']||row['estimasi_biaya']||row['Estimasi Biaya']||0)||0;
+        var ket     = String(row['KETERANGAN']||row['keterangan']||row['Keterangan']||'-').trim();
+
+        // Parse bulan
+        var bln;
+        if(typeof blnRaw === 'number') {
+          bln = Math.round(blnRaw);
+        } else {
+          var blnStr = String(blnRaw).trim().toLowerCase();
+          bln = blnMap[blnStr] || parseInt(blnStr) || 0;
+        }
+
+        // Map kategori
+        var kat = katMap[katRaw] || 'Lainnya';
+
+        // Map prioritas
+        var prio = prioMap[prioRaw] || 'Sedang';
+
+        var thn = parseInt(thnRaw) || 2026;
+
+        if(!namaPek || bln < 1 || bln > 12 || thn < 2025 || thn > 2030) {
+          errors.push('Baris '+(i+2)+': data tidak lengkap/tidak valid');
+          skipped++;
+          return;
+        }
+
+        var record = {
+          id: 'WP'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+          ts: new Date().toISOString(),
+          nama: namaPek,
+          kat: kat,
+          prio: prio,
+          bln: bln,
+          thn: thn,
+          pic: pic||'-',
+          biaya: biaya,
+          ket: ket||'-',
+          expired: '',
+          notif: 30,
+          status: 'Direncanakan'
+        };
+
+        LOG_WP.push(record);
+        imported++;
+      });
+
+      localStorage.setItem('pm_workplan_v1', JSON.stringify(LOG_WP));
+
+      var msg = '✅ Import selesai: '+imported+' pekerjaan berhasil ditambahkan';
+      if(skipped > 0) msg += ' · '+skipped+' baris dilewati';
+      if(errors.length) msg += '\n⚠️ '+errors.slice(0,3).join(' | ');
+
+      statusEl.style.color = imported > 0 ? 'var(--ok)' : 'var(--warn)';
+      statusEl.textContent = msg;
+
+      // Sync ke Sheets jika ada
+      if(imported > 0) {
+        sendToSheets({action:'bulkImportWP', data: LOG_WP.slice(-imported)}).catch(function(){});
+        renderWP();
+        showToast('📥 '+imported+' work plan berhasil diimport!', 'vendor');
+      }
+
+      // Reset file input
+      input.value = '';
+
+      // Auto-hide status after 6 sec
+      setTimeout(function(){ statusEl.style.display = 'none'; }, 6000);
+
+    } catch(err) {
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = '❌ Gagal membaca file: '+err.message;
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(input.files[0]);
+}
+
+
   if (!_importOpsParsed.length) return;
   const confirmStatus = document.getElementById('importOpsConfirmStatus');
   confirmStatus.textContent = '⏳ Menyimpan...';
