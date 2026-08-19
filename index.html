@@ -4580,8 +4580,20 @@ async function confirmImportOps() {
   const confirmStatus = document.getElementById('importOpsConfirmStatus');
   confirmStatus.textContent = '⏳ Menyimpan...';
 
-  let saved = 0;
+  let saved = 0, skipped = 0;
+
+  // Buat set duplikat dari data existing
+  const existingKeys = new Set([
+    ...LOG_I.map(d => (d.tgl||'') + '|' + (d.catatan||d.nama||'').slice(0,30)),
+    ...LOG_V.map(d => (d.tgl||'') + '|' + (d.catatan||d.nama||'').slice(0,30))
+  ]);
+
   for (const r of _importOpsParsed) {
+    // Cek duplikat
+    const key = r.tgl + '|' + r.desc.slice(0,30);
+    if (existingKeys.has(key)) { skipped++; continue; }
+    existingKeys.add(key);
+
     // Build record compatible with LOG_I structure
     if (r.isVendor) {
       // Vendor record
@@ -4645,7 +4657,8 @@ async function confirmImportOps() {
     await sendToSheets({ action:'bulkImport', data: _importOpsParsed });
   } catch(e) { console.warn('Sheet sync failed:', e); }
 
-  confirmStatus.textContent = `✅ ${saved} pekerjaan berhasil disimpan!`;
+  const skipMsg = skipped > 0 ? `, ${skipped} duplikat dilewati` : '';
+  confirmStatus.textContent = `✅ ${saved} pekerjaan disimpan${skipMsg}`;
 
   // Refresh riwayat
   renderRiwayat();
