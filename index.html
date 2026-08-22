@@ -1892,17 +1892,30 @@ function renderRiwayat(){
       if(jt==='complaint') meta2 = `📍 Unit ${d.unit} · 🔖 ${d.kategoriKeluhan||''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else if(jt==='renovasi') meta2 = `📍 Unit ${d.unit}${d.picUnit?' · 👤 '+d.picUnit:''}${d.targetSelesai?' · 🗓️ Target: '+fmt(d.targetSelesai):''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else meta2 = `📍 ${d.lokasi||''} · ${d.kategori||''}`;
-      return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}">
+      const origIdx = LOG_I.indexOf(d);
+      return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}" id="ihi-${origIdx}">
         <div class="hih">
-          <div>
+          <div style="flex:1;">
             <div class="hieq">${icon} ${d.nama} <span class="badge ${jtBadge}" style="font-size:9px">${jtLabel}</span></div>
             <div class="himeta">📅 ${fmt(d.tgl)} ${d.jam?'· ⏰ '+d.jam:''} · 👷 ${d.teknisi}</div>
             <div class="himeta" style="margin-top:2px">${meta2}</div>
           </div>
-          <span class="badge ${bc2}">${kondLabel}</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+            <span class="badge ${bc2}">${kondLabel}</span>
+            ${jt==='complaint' ? `
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Proses')"
+                style="font-size:9px;background:#7a5c00;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⚡ Proses</button>
+              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Selesai')"
+                style="font-size:9px;background:#1a5c1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">✅ Selesai</button>
+              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Pending')"
+                style="font-size:9px;background:#5c1a1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⏸ Pending</button>
+            </div>` : ''}
+          </div>
         </div>
         ${d.checks?.length?`<div class="hicl">${d.checks.map(c=>`<span class="cchip">✓ ${c}</span>`).join('')}</div>`:''}
         ${d.catatan?`<div style="margin-top:6px;font-size:12px;color:var(--text2);padding:7px;background:var(--bg2)">📌 ${d.catatan}</div>`:''}
+        ${jt==='complaint'&&d.hp?`<div style="margin-top:4px;font-size:11px;color:var(--text2);">📱 ${d.hp}</div>`:''}
       </div>`;
     }
   }).join('');
@@ -4681,6 +4694,71 @@ async function confirmImportOps() {
     confirmStatus.textContent = '';
     _importOpsParsed = [];
   }, 2500);
+}
+
+
+// ═══════════════════════════════════════════════════
+// UPDATE STATUS COMPLAINT
+// ═══════════════════════════════════════════════════
+async function updateStatusComplaint(idx, newStatus) {
+  if (idx < 0 || idx >= LOG_I.length) return;
+
+  const d = LOG_I[idx];
+  if (!d || d.jobType !== 'complaint') return;
+
+  const oldStatus = d.kondisi || '—';
+  LOG_I[idx].kondisi = newStatus;
+  localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+
+  // Update kartu langsung tanpa reload
+  renderRiwayat();
+
+  // Toast notifikasi
+  showToast('✅ Status complaint Unit ' + (d.unit||'') + ' → ' + newStatus);
+
+  // Kirim update ke Sheets via Apps Script
+  try {
+    const payload = {
+      type: 'update_complaint_status',
+      ts: d.ts,
+      unit: d.unit || '',
+      oldStatus: oldStatus,
+      newStatus: newStatus,
+      teknisi: d.teknisi || '',
+      updatedAt: new Date().toISOString()
+    };
+    const res = await fetch(SHEETS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.status === 'success') {
+      Logger && Logger.log && Logger.log('Status updated in Sheets');
+    }
+  } catch(e) {
+    console.warn('Sheets sync failed (local update OK):', e);
+  }
+
+  // Kirim notif WA jika selesai
+  if (newStatus === 'Selesai') {
+    try {
+      const payload = {
+        type: 'notif_complaint_selesai',
+        unit: d.unit || '',
+        kategori: d.kategoriKeluhan || d.nama || '',
+        teknisi: d.teknisi || '',
+        tgl: d.tgl || ''
+      };
+      await fetch(SHEETS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch(e) {
+      console.warn('WA notif failed:', e);
+    }
+  }
 }
 
 </script>
