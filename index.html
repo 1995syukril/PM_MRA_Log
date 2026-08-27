@@ -1943,8 +1943,8 @@ function renderRiwayat(){
       if(jt==='complaint') meta2 = `📍 Unit ${d.unit} · 🔖 ${d.kategoriKeluhan||''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else if(jt==='renovasi') meta2 = `📍 Unit ${d.unit}${d.picUnit?' · 👤 '+d.picUnit:''}${d.targetSelesai?' · 🗓️ Target: '+fmt(d.targetSelesai):''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else meta2 = `📍 ${d.lokasi||''} · ${d.kategori||''}`;
-      const origIdx = LOG_I.findIndex(r => r.ts === d.ts);
-      return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}" id="ihi-${origIdx}">
+      const _dTs = (d.ts||'').replace(/'/g,"\\'");
+      return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}" id="ihi-${_dTs}">
         <div class="hih">
           <div style="flex:1;">
             <div class="hieq">${icon} ${d.nama} <span class="badge ${jtBadge}" style="font-size:9px">${jtLabel}</span></div>
@@ -1955,11 +1955,11 @@ function renderRiwayat(){
             <span class="badge ${bc2}">${kondLabel}</span>
             ${jt==='complaint' ? `
             <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
-              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Proses')"
+              <button class="btn bsm" onclick="updateStatusByTs('${_dTs}','Proses')"
                 style="font-size:9px;background:#7a5c00;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⚡ Proses</button>
-              <button class="btn bsm" onclick="bukaModalSelesai(${origIdx})"
+              <button class="btn bsm" onclick="bukaModalSelesaiByTs('${_dTs}')"
                 style="font-size:9px;background:#1a5c1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">✅ Selesai</button>
-              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Pending')"
+              <button class="btn bsm" onclick="updateStatusByTs('${_dTs}','Pending')"
                 style="font-size:9px;background:#5c1a1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⏸ Pending</button>
             </div>` : ''}
           </div>
@@ -4979,6 +4979,25 @@ async function konfirmasiSelesai() {
   } catch(e) {
     console.warn('Sync failed:', e);
   }
+}
+
+
+// ── Status update by timestamp (lebih reliable dari index) ──
+function findIdxByTs(ts) {
+  return LOG_I.findIndex(r => String(r.ts) === String(ts));
+}
+
+function updateStatusByTs(ts, newStatus) {
+  const idx = findIdxByTs(ts);
+  if (idx < 0) { console.error('Record not found for ts:', ts); return; }
+  updateStatusComplaint(idx, newStatus);
+}
+
+function bukaModalSelesaiByTs(ts) {
+  const idx = findIdxByTs(ts);
+  console.log('bukaModalSelesaiByTs ts=', ts, 'idx=', idx);
+  if (idx < 0) { alert('Data tidak ditemukan'); return; }
+  bukaModalSelesai(idx);
 }
 
 </script>
