@@ -1943,7 +1943,7 @@ function renderRiwayat(){
       if(jt==='complaint') meta2 = `📍 Unit ${d.unit} · 🔖 ${d.kategoriKeluhan||''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else if(jt==='renovasi') meta2 = `📍 Unit ${d.unit}${d.picUnit?' · 👤 '+d.picUnit:''}${d.targetSelesai?' · 🗓️ Target: '+fmt(d.targetSelesai):''}<br><span style="font-size:11px">${d.deskripsi||''}</span>`;
       else meta2 = `📍 ${d.lokasi||''} · ${d.kategori||''}`;
-      const origIdx = LOG_I.indexOf(d);
+      const origIdx = LOG_I.findIndex(r => r.ts === d.ts);
       return `<div class="hi ${jt==='complaint'?'complaint-hi':jt==='renovasi'?'renovasi-hi':''}" id="ihi-${origIdx}">
         <div class="hih">
           <div style="flex:1;">
@@ -4752,13 +4752,18 @@ async function confirmImportOps() {
 // UPDATE STATUS COMPLAINT
 // ═══════════════════════════════════════════════════
 async function updateStatusComplaint(idx, newStatus) {
-  if (idx < 0 || idx >= LOG_I.length) return;
+  // idx bisa -1 jika ts tidak ditemukan
+  let realIdx = idx;
+  if (realIdx < 0 || realIdx >= LOG_I.length) {
+    console.warn('updateStatusComplaint: idx invalid', idx);
+    return;
+  }
 
-  const d = LOG_I[idx];
+  const d = LOG_I[realIdx];
   if (!d || d.jobType !== 'complaint') return;
 
   const oldStatus = d.kondisi || '—';
-  LOG_I[idx].kondisi = newStatus;
+  LOG_I[realIdx].kondisi = newStatus;
   localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
 
   // Update kartu langsung tanpa reload
@@ -4898,6 +4903,10 @@ let _selesaiIdx = -1;
 
 function bukaModalSelesai(idx) {
   _selesaiIdx = idx;
+  if (idx < 0 || idx >= LOG_I.length) {
+    alert('Error: complaint tidak ditemukan (idx=' + idx + ')');
+    return;
+  }
   const d = LOG_I[idx];
   if (!d) return;
 
@@ -4919,7 +4928,7 @@ function bukaModalSelesai(idx) {
 
   // Show modal
   const modal = document.getElementById('modal-selesai');
-  if (modal) modal.style.display = 'flex';
+  if (modal) { modal.style.display = 'flex'; console.log('Modal opened for idx:', idx, 'unit:', d.unit); }
 }
 
 async function konfirmasiSelesai() {
