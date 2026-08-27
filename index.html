@@ -1322,6 +1322,57 @@ function showTab(id, btn, isVendor){
   </div>
 </section>
 
+<!-- Modal: Selesaikan Complaint -->
+<div id="modal-selesai-complaint" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+    <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green);margin-bottom:4px;">✅ SELESAIKAN COMPLAINT</div>
+    <div id="sc-info" style="font-size:11px;color:var(--text2);margin-bottom:14px;"></div>
+    <label style="font-size:11px;color:var(--text2);font-family:var(--mono);">TEKNISI YANG MENANGANI *</label>
+    <input id="sc-teknisi" type="text" placeholder="Nama teknisi..." style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:12px;margin:4px 0 12px;box-sizing:border-box;">
+    <label style="font-size:11px;color:var(--text2);font-family:var(--mono);">CATATAN PENYELESAIAN *</label>
+    <textarea id="sc-catatan" rows="4" placeholder="Contoh:&#10;- Ganti valve air pipa bocor&#10;- Pakai sealant waterproof&#10;- Test tidak ada bocor" style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:12px;margin:4px 0 12px;box-sizing:border-box;resize:vertical;"></textarea>
+    <label style="font-size:11px;color:var(--text2);font-family:var(--mono);">SPARE PART DIPAKAI (opsional)</label>
+    <input id="sc-sparepart" type="text" placeholder="Contoh: Valve 1/2 inch 1 pcs, Sealant 1 tube" style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:12px;margin:4px 0 12px;box-sizing:border-box;">
+    <label style="font-size:11px;color:var(--text2);font-family:var(--mono);">DURASI PENGERJAAN (opsional)</label>
+    <input id="sc-durasi" type="text" placeholder="Contoh: 2 jam, 30 menit" style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:12px;margin:4px 0 16px;box-sizing:border-box;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="konfirmasiSelesai()" style="flex:1;background:var(--green);color:#000;border:none;border-radius:6px;padding:10px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">✅ KONFIRMASI SELESAI</button>
+      <button onclick="document.getElementById('modal-selesai-complaint').style.display='none'" style="background:none;border:1px solid var(--border);border-radius:6px;padding:10px 16px;font-family:var(--mono);font-size:12px;cursor:pointer;">✕ BATAL</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal: Catatan Penyelesaian Complaint -->
+<div id="modal-selesai" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;width:min(480px,95vw);max-height:90vh;overflow-y:auto;">
+    <div style="font-family:var(--mono);font-weight:700;font-size:13px;color:var(--accent);margin-bottom:4px;">✅ SELESAIKAN COMPLAINT</div>
+    <div id="modal-selesai-info" style="font-size:11px;color:var(--text2);margin-bottom:14px;"></div>
+
+    <label style="font-family:var(--mono);font-size:10px;color:var(--text2);display:block;margin-bottom:4px;">LANGKAH PERBAIKAN / CATATAN PENYELESAIAN *</label>
+    <textarea id="selesai-catatan" rows="4" placeholder="Contoh: Ganti seal kran wastafel, pasang isolasi pipa. Pemakaian spare part: seal karet 2 pcs, isolasi pipa 1m..."
+      style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+
+    <label style="font-family:var(--mono);font-size:10px;color:var(--text2);display:block;margin:10px 0 4px;">SPARE PART YANG DIPAKAI (opsional)</label>
+    <input id="selesai-sparepart" type="text" placeholder="Contoh: Seal karet 2 pcs, kran air 1 unit"
+      style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:11px;font-family:inherit;box-sizing:border-box;">
+
+    <label style="font-family:var(--mono);font-size:10px;color:var(--text2);display:block;margin:10px 0 4px;">DIKERJAKAN OLEH</label>
+    <input id="selesai-teknisi" type="text" placeholder="Nama teknisi"
+      style="width:100%;background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:11px;font-family:inherit;box-sizing:border-box;">
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button onclick="konfirmasiSelesai()"
+        style="flex:1;background:#1a5c1a;color:#fff;border:none;border-radius:6px;padding:9px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:700;">
+        ✅ KONFIRMASI SELESAI
+      </button>
+      <button onclick="document.getElementById('modal-selesai').style.display='none'"
+        style="background:none;border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-family:var(--mono);font-size:11px;cursor:pointer;">
+        BATAL
+      </button>
+    </div>
+  </div>
+</div>
 </main>
 <div id="toast"></div>
 
@@ -1906,7 +1957,7 @@ function renderRiwayat(){
             <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
               <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Proses')"
                 style="font-size:9px;background:#7a5c00;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⚡ Proses</button>
-              <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Selesai')"
+              <button class="btn bsm" onclick="bukaModalSelesai(${origIdx})"
                 style="font-size:9px;background:#1a5c1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">✅ Selesai</button>
               <button class="btn bsm" onclick="updateStatusComplaint(${origIdx},'Pending')"
                 style="font-size:9px;background:#5c1a1a;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;">⏸ Pending</button>
@@ -4758,6 +4809,166 @@ async function updateStatusComplaint(idx, newStatus) {
     } catch(e) {
       console.warn('WA notif failed:', e);
     }
+  }
+}
+
+
+// ═══════════════════════════════════════════════════
+// MODAL SELESAIKAN COMPLAINT
+// ═══════════════════════════════════════════════════
+let _scIdx = -1;
+
+function bukaModalSelesai(idx) {
+  _scIdx = idx;
+  const d = LOG_I[idx];
+  if (!d) return;
+
+  // Isi info
+  document.getElementById('sc-info').innerHTML =
+    '<b>Unit ' + (d.unit||'—') + '</b> · ' + (d.kategoriKeluhan||d.nama||'—') + '<br>' +
+    '<span style="color:var(--text2)">' + (d.deskripsi||'') + '</span>';
+
+  // Reset form
+  document.getElementById('sc-teknisi').value = d.teknisi || '';
+  document.getElementById('sc-catatan').value = '';
+  document.getElementById('sc-sparepart').value = '';
+  document.getElementById('sc-durasi').value = '';
+
+  // Show modal
+  const modal = document.getElementById('modal-selesai-complaint');
+  modal.style.display = 'flex';
+}
+
+async function konfirmasiSelesai() {
+  if (_scIdx < 0) return;
+
+  const teknisi  = document.getElementById('sc-teknisi').value.trim();
+  const catatan  = document.getElementById('sc-catatan').value.trim();
+  const sparepart = document.getElementById('sc-sparepart').value.trim();
+  const durasi   = document.getElementById('sc-durasi').value.trim();
+
+  if (!teknisi) { alert('⚠️ Teknisi wajib diisi'); return; }
+  if (!catatan) { alert('⚠️ Catatan penyelesaian wajib diisi'); return; }
+
+  // Update record
+  const d = LOG_I[_scIdx];
+  LOG_I[_scIdx].kondisi   = 'Selesai';
+  LOG_I[_scIdx].teknisi   = teknisi;
+  LOG_I[_scIdx].catatan   = catatan
+    + (sparepart ? ' | SP: ' + sparepart : '')
+    + (durasi    ? ' | Durasi: ' + durasi : '');
+  LOG_I[_scIdx].tglSelesai = new Date().toISOString().split('T')[0];
+
+  localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+
+  // Close modal
+  document.getElementById('modal-selesai-complaint').style.display = 'none';
+  renderRiwayat();
+  showToast('✅ Complaint Unit ' + (d.unit||'') + ' selesai!');
+
+  // Kirim ke Sheets + WA notif
+  try {
+    const payload = {
+      type: 'notif_complaint_selesai',
+      unit: d.unit || '',
+      kategori: d.kategoriKeluhan || d.nama || '',
+      teknisi: teknisi,
+      catatan: catatan,
+      sparepart: sparepart,
+      durasi: durasi,
+      tgl: d.tgl || ''
+    };
+    await fetch(SHEETS_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    console.warn('Sheets/WA sync:', e);
+  }
+
+  _scIdx = -1;
+}
+
+
+// ═══════════════════════════════════════════════════
+// MODAL SELESAI COMPLAINT
+// ═══════════════════════════════════════════════════
+let _selesaiIdx = -1;
+
+function bukaModalSelesai(idx) {
+  _selesaiIdx = idx;
+  const d = LOG_I[idx];
+  if (!d) return;
+
+  // Isi info complaint
+  const info = document.getElementById('modal-selesai-info');
+  if (info) {
+    info.textContent = '📍 Unit ' + (d.unit||'—') + ' · ' + (d.kategoriKeluhan||d.nama||'—') + ' · ' + (d.tgl||'—');
+  }
+
+  // Pre-fill teknisi
+  const tek = document.getElementById('selesai-teknisi');
+  if (tek && !tek.value) tek.value = d.teknisi || '';
+
+  // Clear catatan & sparepart
+  const cat = document.getElementById('selesai-catatan');
+  if (cat) cat.value = d.catatanSelesai || '';
+  const sp = document.getElementById('selesai-sparepart');
+  if (sp) sp.value = d.sparepartPakai || '';
+
+  // Show modal
+  const modal = document.getElementById('modal-selesai');
+  if (modal) modal.style.display = 'flex';
+}
+
+async function konfirmasiSelesai() {
+  const catatan   = document.getElementById('selesai-catatan')?.value?.trim();
+  const sparepart = document.getElementById('selesai-sparepart')?.value?.trim();
+  const teknisi   = document.getElementById('selesai-teknisi')?.value?.trim();
+
+  if (!catatan) {
+    alert('⚠️ Mohon isi catatan penyelesaian terlebih dahulu');
+    return;
+  }
+
+  // Tutup modal
+  document.getElementById('modal-selesai').style.display = 'none';
+
+  // Update record
+  const d = LOG_I[_selesaiIdx];
+  LOG_I[_selesaiIdx].kondisi         = 'Selesai';
+  LOG_I[_selesaiIdx].catatanSelesai  = catatan;
+  LOG_I[_selesaiIdx].sparepartPakai  = sparepart;
+  if (teknisi) LOG_I[_selesaiIdx].teknisi = teknisi;
+  LOG_I[_selesaiIdx].tglSelesai      = new Date().toISOString().slice(0,10);
+
+  localStorage.setItem('pm_internal_v1', JSON.stringify(LOG_I));
+  renderRiwayat();
+  showToast('✅ Complaint Unit ' + (d.unit||'') + ' diselesaikan');
+
+  // Kirim ke Sheets + WA
+  try {
+    const catatanLengkap = catatan + (sparepart ? ' | Spare part: ' + sparepart : '');
+    await sendToSheets({
+      type: 'update_complaint_status',
+      ts: d.ts, unit: d.unit||'',
+      oldStatus: d.kondisi||'',
+      newStatus: 'Selesai',
+      teknisi: teknisi||d.teknisi||'',
+      catatan: catatanLengkap,
+      updatedAt: new Date().toISOString()
+    });
+    await sendToSheets({
+      type: 'notif_complaint_selesai',
+      unit: d.unit||'',
+      kategori: d.kategoriKeluhan||d.nama||'',
+      teknisi: teknisi||d.teknisi||'',
+      catatan: catatanLengkap,
+      tgl: d.tgl||''
+    });
+  } catch(e) {
+    console.warn('Sync failed:', e);
   }
 }
 
