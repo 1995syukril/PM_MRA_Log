@@ -2007,7 +2007,7 @@ function renderLapI(){
     <div class="scard ok"><div class="slabel">Total Pekerjaan</div><div class="sval">${data.length}</div><div class="ssub">Semua jenis</div></div>`;
   // Per teknisi summary — pecah kombinasi nama jadi individual
   const tekSum={};
-  const KNOWN_NAMES = ['Syukril','Solaeman','Sumartono','Joko','Dasrul','Naufal','Ilham','Sakim','Aris','Nanang','Crew Maintenance','crew maintenance'];
+  const KNOWN_NAMES = ['Syukril','Solaeman','Sumartono','Joko','Dasrul','Naufal','Ilham','Sakim','Sutarman','Sakti','Crew Maintenance','crew maintenance'];
   data.forEach(d=>{
     const raw = d.teknisi || '';
     // Pecah berdasarkan kata sambung: dan, &, |, +, koma
@@ -3663,8 +3663,8 @@ function isLiburNasional(thn, bln, tgl){
 }
 
 var PERSONIL_LIST = [
-  'Syukril','Solaeman','Ilham','Joko','Nanang',
-  'Ridwan Naufal','Sakim','Dasrul','Aris','Sumartono'
+  'Syukril','Solaeman','Ilham','Joko','Sakti',
+  'Ridwan Naufal','Sakim','Dasrul','Sutarman','Sumartono'
 ];
 
 var SHIFT_CONFIG = {
@@ -3993,7 +3993,7 @@ function importJadwalExcel(input){
 
       if(headerRowIdx===-1){
         hideJdLoading();
-        alert('Format Excel tidak dikenali. Pastikan ada baris dengan angka 1, 2, 3... sebagai header tanggal.');
+        alert('Format Excel tidak dikenali. Pastikan ada bSutarman dengan angka 1, 2, 3... sebagai header tanggal.');
         input.value='';
         return;
       }
@@ -4161,7 +4161,7 @@ function importJadwalFoto(input){
 
 // ===================== GENERATE BULAN DEPAN =====================
 var SUPERVISOR_LIST = ['Syukril', 'Solaeman'];
-var TIM_LAPANGAN = ['Ilham', 'Joko', 'Nanang', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Aris', 'Sumartono'];
+var TIM_LAPANGAN = ['Ilham', 'Joko', 'Sakti', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Sutarman', 'Sumartono'];
 var POLA_ROTASI = ['P', 'P', 'S1', 'S', 'M', 'M', '-', '-'];
 
 function generateBulanDepan(){
