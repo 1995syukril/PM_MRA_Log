@@ -240,6 +240,11 @@ function showTab(id, btn, isVendor){
   var sec = document.getElementById('tab-'+id);
   if(sec) sec.classList.add('active');
   if(btn) btn.classList.add(isVendor ? 'vactive' : 'active');
+  // Init form saat tab dibuka
+  if(id === 'form-internal') setTimeout(initFormI, 50);
+  if(id === 'riwayat') setTimeout(renderRiwayat, 50);
+  if(id === 'lvmdp') { initLvmdp(); loadLvmdpData().then(()=>renderLvmdpLog()); }
+  if(id === 'operasional') initOperasional();
 }
 </script>
 <!-- MMS-MRA-BUILD-20260317032714 -->
@@ -1502,6 +1507,7 @@ function showTab(id,btn,isVendor){
   btn.classList.add(isVendor?'vactive':'active');
   if(id==='dashboard') renderDash();
   if(id==='riwayat') renderRiwayat();
+  if(id==='form-internal') setTimeout(initFormI, 50);
   renderAgenda();
   // Set current month in laporan
   var now=new Date(); var lbEl=document.getElementById('lb-bln'); if(lbEl) lbEl.value=now.getMonth()+1; renderLapBulanan();
