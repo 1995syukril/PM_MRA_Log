@@ -392,8 +392,8 @@ function showTab(id, btn, isVendor){
 <div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'i-tek')">Ridwan Naufal</div>
 <div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'i-tek')">Ilham Kristyanto</div>
 <div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'i-tek')">Sakim</div>
-<div class="pic-opt" data-val="Sutarman" onclick="togglePic(this,'i-tek')">Sutarman</div>
-<div class="pic-opt" data-val="Sakti Indra Ismaya" onclick="togglePic(this,'i-tek')">Sakti Indra Ismaya</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'i-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'i-tek')">Nanang Bimasuka</div>
   </div>
   <input type="hidden" id="i-tek" value="">
 </div>
@@ -613,8 +613,8 @@ function showTab(id, btn, isVendor){
           <option>Ridwan Naufal</option>
           <option>Ilham Kristyanto</option>
           <option>Sakim</option>
-          <option>Sutarman</option>
-          <option>Sakti Indra Ismaya</option>
+          <option>Aris Munandar</option>
+          <option>Nanang Bimasuka</option>
         </select>
       </div>
       <div class="fg full" id="v-scope-info" style="display:none">
@@ -734,8 +734,8 @@ function showTab(id, btn, isVendor){
 <div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'rv-tek')">Ridwan Naufal</div>
 <div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'rv-tek')">Ilham Kristyanto</div>
 <div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'rv-tek')">Sakim</div>
-<div class="pic-opt" data-val="Sutarman" onclick="togglePic(this,'rv-tek')">Sutarman</div>
-<div class="pic-opt" data-val="Sakti Indra Ismaya" onclick="togglePic(this,'rv-tek')">Sakti Indra Ismaya</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'rv-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'rv-tek')">Nanang Bimasuka</div>
   </div>
   <input type="hidden" id="rv-tek" value="">
 </div>
@@ -931,8 +931,8 @@ function showTab(id, btn, isVendor){
 <div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'mp-tek')">Ridwan Naufal</div>
 <div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'mp-tek')">Ilham Kristyanto</div>
 <div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'mp-tek')">Sakim</div>
-<div class="pic-opt" data-val="Sutarman" onclick="togglePic(this,'mp-tek')">Sutarman</div>
-<div class="pic-opt" data-val="Sakti Indra Ismaya" onclick="togglePic(this,'mp-tek')">Sakti Indra Ismaya</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'mp-tek')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'mp-tek')">Nanang Bimasuka</div>
   </div>
   <input type="hidden" id="mp-tek" value="">
 </div>
@@ -1046,8 +1046,8 @@ function showTab(id, btn, isVendor){
 <div class="pic-opt" data-val="Ridwan Naufal" onclick="togglePic(this,'ag-pic')">Ridwan Naufal</div>
 <div class="pic-opt" data-val="Ilham Kristyanto" onclick="togglePic(this,'ag-pic')">Ilham Kristyanto</div>
 <div class="pic-opt" data-val="Sakim" onclick="togglePic(this,'ag-pic')">Sakim</div>
-<div class="pic-opt" data-val="Sutarman" onclick="togglePic(this,'ag-pic')">Sutarman</div>
-<div class="pic-opt" data-val="Sakti Indra Ismaya" onclick="togglePic(this,'ag-pic')">Sakti Indra Ismaya</div>
+<div class="pic-opt" data-val="Aris Munandar" onclick="togglePic(this,'ag-pic')">Aris Munandar</div>
+<div class="pic-opt" data-val="Nanang Bimasuka" onclick="togglePic(this,'ag-pic')">Nanang Bimasuka</div>
   </div>
   <input type="hidden" id="ag-pic" value="">
 </div>
@@ -2007,7 +2007,7 @@ function renderLapI(){
     <div class="scard ok"><div class="slabel">Total Pekerjaan</div><div class="sval">${data.length}</div><div class="ssub">Semua jenis</div></div>`;
   // Per teknisi summary — pecah kombinasi nama jadi individual
   const tekSum={};
-  const KNOWN_NAMES = ['Syukril','Solaeman','Sumartono','Joko','Dasrul','Naufal','Ilham','Sakim','Sutarman','Sakti','Crew Maintenance','crew maintenance'];
+  const KNOWN_NAMES = ['Syukril','Solaeman','Sumartono','Joko','Dasrul','Naufal','Ilham','Sakim','Aris','Nanang','Crew Maintenance','crew maintenance'];
   data.forEach(d=>{
     const raw = d.teknisi || '';
     // Pecah berdasarkan kata sambung: dan, &, |, +, koma
@@ -3663,8 +3663,8 @@ function isLiburNasional(thn, bln, tgl){
 }
 
 var PERSONIL_LIST = [
-  'Syukril','Solaeman','Ilham','Joko','Sakti',
-  'Ridwan Naufal','Sakim','Dasrul','Sutarman','Sumartono'
+  'Syukril','Solaeman','Ilham','Joko','Nanang',
+  'Ridwan Naufal','Sakim','Dasrul','Aris','Sumartono'
 ];
 
 var SHIFT_CONFIG = {
@@ -3993,7 +3993,7 @@ function importJadwalExcel(input){
 
       if(headerRowIdx===-1){
         hideJdLoading();
-        alert('Format Excel tidak dikenali. Pastikan ada bSutarman dengan angka 1, 2, 3... sebagai header tanggal.');
+        alert('Format Excel tidak dikenali. Pastikan ada baris dengan angka 1, 2, 3... sebagai header tanggal.');
         input.value='';
         return;
       }
@@ -4161,7 +4161,7 @@ function importJadwalFoto(input){
 
 // ===================== GENERATE BULAN DEPAN =====================
 var SUPERVISOR_LIST = ['Syukril', 'Solaeman'];
-var TIM_LAPANGAN = ['Ilham', 'Joko', 'Sakti', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Sutarman', 'Sumartono'];
+var TIM_LAPANGAN = ['Ilham', 'Joko', 'Nanang', 'Ridwan Naufal', 'Sakim', 'Dasrul', 'Aris', 'Sumartono'];
 var POLA_ROTASI = ['P', 'P', 'S1', 'S', 'M', 'M', '-', '-'];
 
 function generateBulanDepan(){
